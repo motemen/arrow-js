@@ -21,7 +21,7 @@ function test(f) {
                 try {
                     test.testFunctions[i]();
                 } catch (e) {
-                    ok(false, test.testFunctions[i].name, e);
+                    ok(false, decamelize(test.testFunctions[i].name), e);
                 }
                 var elements = test.testFunctions[i]._elements;
                 for (var j = 0; elements && j < elements.length; j++) {
@@ -34,12 +34,12 @@ function test(f) {
 }
 
 function ok(a, text, description) {
-    text = text || arguments.callee.caller.name.split(/(?=[A-Z][a-z]+)/).join(' ').toLowerCase().replace(/[_]/g, ' ');
+    text = text || decamelize(arguments.callee.caller.name);
     var msg = document.body.appendChild(document.createElement('span'));
     msg.appendChild(document.createTextNode((a ? 'ok' : 'ng') + ' - ' + text));
     msg.appendChild(document.createElement('br'));
     if (description) {
-        msg.appendChild(document.createTextNode(' : '))
+        msg.appendChild(document.createTextNode(' :: '))
         msg.appendChild(document.createTextNode(description))
         msg.appendChild(document.createElement('br'));
     }
@@ -47,9 +47,13 @@ function ok(a, text, description) {
 }
 
 function is(a, b, text) {
-    text = text || arguments.callee.caller.name.split(/(?=[A-Z][a-z]+)/).join(' ').toLowerCase().replace(/[_]/g, ' ');
+    text = text || decamelize(arguments.callee.caller.name);
     var is = equals(a, b);
     ok(is, text, !is && ('expected ' + b + ', got ' + a));
+}
+
+function decamelize(str) {
+    return str.split(/(?=[A-Z][a-z]+)/).join(' ').toLowerCase().replace(/[_]/g, ' ');
 }
 
 function equals(a, b) {
@@ -80,8 +84,8 @@ function _clearElements() {
     }
 }
 
-var a1 = Arrow.Constant(1);
-var a2 = Arrow.Constant(2);
+var a1 = Arrow.constant(1);
+var a2 = Arrow.constant(2);
 var aPlus1 = Arrow.pure(function(x) { return x + 1 });
 var aMul3  = Arrow.pure(function(x) { return x * 3 });
 
@@ -106,9 +110,9 @@ test(function clickEvent() {
         .next(function(x) { is(x, '[object MouseEvent]', 'click event') }).call();
 });
 
-test(function keydownAndMousemoveEvent() {
-    Arrow.Event(document, 'keydown')
-        .next(function(e) { is(e, '[object KeyboardEvent]', 'keydown event [' + String.fromCharCode(e.keyCode) + '] - then move mouse') })
+test(function keypressAndMousemoveEvent() {
+    Arrow.Event(document, 'keypress')
+        .next(function(e) { is(e, '[object KeyboardEvent]', 'keydown event [' + String.fromCharCode(e.charCode) + '] - then move mouse') })
         .next(Arrow.Event(document, 'mousemove'))
         .next(function(e) { is(e, '[object MouseEvent]', 'keydown and mouesmove event') }).call();
 });

@@ -1,8 +1,8 @@
-function Arrow(cps) {
+function Arrow(cpsFunction) {
     if (!(this instanceof Arrow)) {
-        return new Arrow(cps);
+        return new Arrow(cpsFunction);
     }
-    this.cps = cps;
+    this.cpsFunction = cpsFunction;
 }
 
 Arrow.pure = function(f) {
@@ -11,7 +11,7 @@ Arrow.pure = function(f) {
     });
 }
 
-Arrow.Constant = function(value) {
+Arrow.constant = function(value) {
     return Arrow.pure(function() {
         return value;
     });
@@ -20,7 +20,7 @@ Arrow.Constant = function(value) {
 Arrow.prototype.next = function(g) {
     if (typeof g == 'function')
         g = Arrow.pure(g);
-    var f = this.cps, g = g.cps;
+    var f = this.cpsFunction, g = g.cpsFunction;
     return Arrow(function(x, k) {
         f(x, function(y) { g(y, k) });
     });
@@ -28,7 +28,7 @@ Arrow.prototype.next = function(g) {
 
 Arrow.prototype.call = function(x) {
     var result;
-    this.cps(x, function(y) { result = y });
+    this.cpsFunction(x, function(y) { result = y });
     return result;
 }
 
