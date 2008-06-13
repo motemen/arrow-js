@@ -48,11 +48,6 @@ function ok(a, text, description) {
 function is(a, b, text) {
     text = text || arguments.callee.caller.name.split(/(?=[A-Z][a-z]+)/).join(' ').toLowerCase();
     ok(a == b, text);
-    if (a == b) {
-        console.log('ok - ', text);
-    } else {
-        console.error('error - ', text);
-    }
 }
 
 function _element(tag) {
@@ -71,6 +66,30 @@ function _clearElements() {
         elements[i].parentNode && elements[i].parentNode.removeChild(elements[i]);
     }
 }
+
+var a = Arrow;
+
+test(function simpleArrow() {
+    is(a(function() { return 1 }).call(), 1);
+});
+
+test(function connectedArrows() {
+    is(
+        a(function() { return 1 })
+        .next(function(x) { return x + 1 })
+        .call(),
+        2
+    );
+});
+
+test(function threeConnectedArrows() {
+    is(
+        a(function() { return 1 })
+        .next(function(x) { return x + 1 })
+        .next(function(x) { return x * 2 }).call(),
+        4
+    );
+});
         </script>
     </body>
 </html>
