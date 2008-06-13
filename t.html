@@ -34,7 +34,7 @@ function test(f) {
 }
 
 function ok(a, text, description) {
-    text = text || arguments.callee.caller.name.split(/(?=[A-Z][a-z]+)/).join(' ').toLowerCase();
+    text = text || arguments.callee.caller.name.split(/(?=[A-Z][a-z]+)/).join(' ').toLowerCase().replace(/[_]/g, ' ');
     var msg = document.body.appendChild(document.createElement('span'));
     msg.appendChild(document.createTextNode((a ? 'ok' : 'ng') + ' - ' + text));
     msg.appendChild(document.createElement('br'));
@@ -46,7 +46,7 @@ function ok(a, text, description) {
 }
 
 function is(a, b, text) {
-    text = text || arguments.callee.caller.name.split(/(?=[A-Z][a-z]+)/).join(' ').toLowerCase();
+    text = text || arguments.callee.caller.name.split(/(?=[A-Z][a-z]+)/).join(' ').toLowerCase().replace(/[_]/g, ' ');
     var is = equals(a, b);
     ok(is, text, !is && ('expected ' + b + ', got ' + a));
 }
@@ -80,6 +80,7 @@ function _clearElements() {
 }
 
 var a1 = Arrow.Constant(1);
+var a2 = Arrow.Constant(2);
 var aPlus1 = Arrow(function(x) { return x + 1 });
 var aMul3  = Arrow(function(x) { return x * 3 });
 
@@ -97,6 +98,14 @@ test(function threeConnectedArrows() {
 
 test(function andArrows() {
     is(a1.next(aPlus1.and(aMul3)).call(), [2, 3]);
+});
+
+test(function pairArrows() {
+    is(a1.pair(a2).call(), [1, 2]);
+});
+
+test(function pairArrows_2() {
+    is(a1.pair(a2).next(aPlus1.pair(aMul3)).call(), [2, 6]);
 });
         </script>
     </body>
