@@ -14,41 +14,40 @@ Arrow.Constant = function(value) {
     });
 };
 
-Arrow.prototype.call = function() {
-    return this.func.apply(this, arguments);
+Arrow.prototype.call = function(x) {
+    return this.func(x);
 };
 
-Arrow.prototype.apply = function(args) {
-    return this.func.apply(this, args);
+Arrow.prototype.apply = function(x) {
+    return this.func.apply(this, x);
 };
 
 Arrow.prototype.next = function(g) {
     var f = this, g = Arrow(g);
-    return Arrow(function() {
-        return g.call(f.apply(arguments));
+    return Arrow(function(x) {
+        return g.call(f.call(x));
     });
 };
 
 Arrow.prototype.and = function(g) {
     var f = this, g = Arrow(g);
-    return Arrow(function() {
+    return Arrow(function(x) {
         return [
-            f.apply(arguments),
-            g.apply(arguments)
+            f.call(x),
+            g.call(x)
         ];
     });
 };
 
-Arrow.prototype.pair = function(g) {
+Arrow.prototype.para = function(g) {
     var f = this, g = Arrow(g);
-    return Arrow(function(a) {
-        if (a) {
-            var a1 = a[0];
-            var a2 = a[1];
+    return Arrow(function(x) {
+        if (x) {
+            var x0 = x[0], x1 = x[1];
         }
         return [
-            f.call(a1),
-            g.call(a2)
+            f.call(x0),
+            g.call(x1)
         ];
     });
 };
