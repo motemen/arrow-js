@@ -1,3 +1,4 @@
+// Sync
 function Arrow(f) {
     if (f instanceof Arrow) {
         return f;
@@ -5,7 +6,9 @@ function Arrow(f) {
     if (!(this instanceof Arrow)) {
         return new Arrow(f);
     }
-    this.func = f;
+    this.cps = function(x, k) {
+        return k(f(x));
+    };
 }
 
 Arrow.Constant = function(value) {
@@ -14,40 +17,22 @@ Arrow.Constant = function(value) {
     });
 };
 
-Arrow.prototype.call = function(x) {
-    return this.func(x);
-};
-
-Arrow.prototype.apply = function(x) {
-    return this.func.apply(this, x);
-};
+Arrow.Identity = Arrow(function(x) {
+    return x;
+});
 
 Arrow.prototype.next = function(g) {
-    var f = this, g = Arrow(g);
-    return Arrow(function(x) {
-        return g.call(f.call(x));
-    });
+    var f = this.cps;
+    var g = g instanceof Arrow ? g.cps : function(x, k) { k(g(x)) };
+    var arrow = new Arrow;
+    arrow.cps = function(x, k) {
+        f(x, function(y) { g(y, k) });
+    };
+    return arrow;
 };
 
-Arrow.prototype.and = function(g) {
-    var f = this, g = Arrow(g);
-    return Arrow(function(x) {
-        return [
-            f.call(x),
-            g.call(x)
-        ];
-    });
-};
-
-Arrow.prototype.para = function(g) {
-    var f = this, g = Arrow(g);
-    return Arrow(function(x) {
-        if (x) {
-            var x0 = x[0], x1 = x[1];
-        }
-        return [
-            f.call(x0),
-            g.call(x1)
-        ];
-    });
+Arrow.prototype.call = function(x) {
+    var result;
+    this.cps(x, function(y) { result = y });
+    return result;
 };
