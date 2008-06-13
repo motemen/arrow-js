@@ -47,7 +47,19 @@ function ok(a, text, description) {
 
 function is(a, b, text) {
     text = text || arguments.callee.caller.name.split(/(?=[A-Z][a-z]+)/).join(' ').toLowerCase();
-    ok(a == b, text);
+    var is = equals(a, b);
+    ok(is, text, !is && ('expected ' + b + ', got ' + a));
+}
+
+function equals(a, b) {
+    if (a instanceof Array && b instanceof Array) {
+        for (var i = 0; i < a.length && i < b.length; i++)
+            if (a[i] != b[i])
+                return false;
+        return true;
+    } else {
+        return a == b;
+    }
 }
 
 function _element(tag) {
@@ -67,28 +79,24 @@ function _clearElements() {
     }
 }
 
-var a = Arrow;
+var a1 = Arrow.Constant(1);
+var aPlus1 = Arrow(function(x) { return x + 1 });
+var aMul3  = Arrow(function(x) { return x * 3 });
 
 test(function simpleArrow() {
-    is(a(function() { return 1 }).call(), 1);
+    is(a1.call(), 1);
 });
 
 test(function connectedArrows() {
-    is(
-        a(function() { return 1 })
-        .next(function(x) { return x + 1 })
-        .call(),
-        2
-    );
+    is(a1.next(aPlus1).call(), 2);
 });
 
 test(function threeConnectedArrows() {
-    is(
-        a(function() { return 1 })
-        .next(function(x) { return x + 1 })
-        .next(function(x) { return x * 2 }).call(),
-        4
-    );
+    is(a1.next(aPlus1).next(aMul3).call(), 6);
+});
+
+test(function andArrows() {
+    is(a1.next(aPlus1.and(aMul3)).call(), [2, 3]);
 });
         </script>
     </body>
