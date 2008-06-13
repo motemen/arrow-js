@@ -82,8 +82,8 @@ function _clearElements() {
 
 var a1 = Arrow.Constant(1);
 var a2 = Arrow.Constant(2);
-var aPlus1 = Arrow(function(x) { return x + 1 });
-var aMul3  = Arrow(function(x) { return x * 3 });
+var aPlus1 = Arrow.pure(function(x) { return x + 1 });
+var aMul3  = Arrow.pure(function(x) { return x * 3 });
 
 test(function simpleArrow() {
     is(a1.call(), 1);
@@ -97,20 +97,20 @@ test(function threeConnectedArrows() {
     is(a1.next(aPlus1).next(aMul3).call(), 6);
 });
 
-test(function andArrows() {
-    is(a1.next(aPlus1.and(aMul3)).call(), [2, 3]);
+test(function delayedArrow() {
+    a1.next(Arrow.Delay(500)).next(function(x) { is(x, 1, 'delayed arrow') }).call();
 });
 
-test(function paraArrows() {
-    is(a1.para(a2).call(), [1, 2]);
+test(function clickEvent() {
+    Arrow.Event(document, 'click')
+        .next(function(x) { is(x, '[object MouseEvent]', 'click event') }).call();
 });
 
-test(function paraArrows_2() {
-    is(a1.para(a2).next(aPlus1.para(aMul3)).call(), [2, 6]);
-});
-
-test(function andParaArrows() {
-    is((aPlus1.and(aMul3)).next(aMul3.para(aPlus1)).call(1), [(1 + 1) * 3, (1 * 3) + 1]);
+test(function keydownAndMousemoveEvent() {
+    Arrow.Event(document, 'keydown')
+        .next(function(e) { is(e, '[object KeyboardEvent]', 'keydown event [' + String.fromCharCode(e.keyCode) + '] - then move mouse') })
+        .next(Arrow.Event(document, 'mousemove'))
+        .next(function(e) { is(e, '[object MouseEvent]', 'keydown and mouesmove event') }).call();
 });
         </script>
     </body>
