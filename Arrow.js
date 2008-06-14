@@ -54,6 +54,14 @@ Arrow.prototype.toString = function() {
     return '[Arrow' + (this.name ? ' ' + this.name : '') + ']';
 }
 
+// Compose arrows
+//
+// x -> y -> z
+//
+//  +---+  +---+
+// -| f |->| g |->
+//  +---+  +---+
+//
 Arrow.prototype['>>>'] = function(g) {
     var f = this, g = Arrow(g);
     return Arrow.fromCPS.named(f.name + ' >>> ' + g.name)(function(x, k) {
@@ -63,6 +71,18 @@ Arrow.prototype['>>>'] = function(g) {
 
 Arrow.prototype.next = Arrow.prototype['>>>'];
 
+// Fork arrow
+//
+// x -> [y1, y2]
+//
+//    +---+
+//  +-| f |->
+//  | +---+
+// -+
+//  | +---+
+//  +-| g |->
+//    +---+
+//
 Arrow.prototype['&&&'] = function(g) {
     var f = this, g = Arrow(g);
     return Arrow.fromCPS.named(f.name + ' &&& ' + g.name)(function(x, k) {
@@ -77,6 +97,17 @@ Arrow.prototype['&&&'] = function(g) {
     });
 }
 
+// Combine arrows
+//
+// [x1, x2] -> [y1, y2]
+//
+//  +---+
+// -| f |->
+//  +---+
+//  +---+
+// -| g |->
+//  +---+
+//
 Arrow.prototype['***'] = function(g) {
     var f = this, g = Arrow(g);
     return Arrow.fromCPS.named(f.name + ' *** ' + g.name)(function(x, k) {
@@ -94,6 +125,31 @@ Arrow.prototype['***'] = function(g) {
     });
 }
 
+// Join arrows
+//
+// [x1, x2] -> y
+//
+//  +---+
+// -| f |-+
+//  +---+ |
+//        +->
+//  +---+ |
+// -| g |-+
+//  +---+
+//
+
+// Choose arrow
+//
+// x -> y
+//
+//   +---+
+// +-| f |-+
+// | +---+ |
+//-+       +->
+// | +---+ |
+// +-| g |-+
+//   +---+
+//
 Arrow.Delay = function(msec) {
     return Arrow.fromCPS(function(x, k) {
         setTimeout(function() { k(x) }, msec);
