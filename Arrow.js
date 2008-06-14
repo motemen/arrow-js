@@ -101,6 +101,10 @@ Arrow.prototype['&&&'] = function(g) {
     });
 }
 
+Arrow.prototype.forkNext = function(f, g) {
+    return this.next((f)['&&&'](g));
+}
+
 // Combine arrows
 //
 // [x1, x2] -> [y1, y2]
@@ -129,6 +133,8 @@ Arrow.prototype['***'] = function(g) {
     });
 }
 
+Arrow.prototype.and = Arrow.prototype['***'];
+
 // Join arrows
 //
 // [x1, x2] -> y
@@ -153,6 +159,10 @@ Arrow.prototype['|||'] = function() {
             g.callCPS(x[1], k);
         }
     });
+}
+
+Arrow.prototype.joinNext = function(f, g) {
+    return this.next((f)['|||'](g));
 }
 
 // Choose arrow
@@ -180,6 +190,8 @@ Arrow.prototype['+++'] = function(g) {
         g.callCPS(x, callCont);
     });
 }
+
+Arrow.prototype.or = Arrow.prototype['+++'];
 
 Arrow.Error = function(e) {
     if (!(this instanceof Arrow.Error))

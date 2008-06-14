@@ -14,28 +14,44 @@
         <script type="text/javascript" src="Arrow.js"></script>
         <script type="text/javascript">
 function test(f) {
-    if (!test.testFunctions) {
-        test.testFunctions = [];
+    if (!test.tests) {
+        test.tests = [];
         window.onload = function() {
-            for (var i = 0; i < test.testFunctions.length; i++) {
-                try {
-                    test.testFunctions[i]();
-                } catch (e) {
-                    ok(false, decamelize(functionName(test.testFunctions[i])), e);
+            test.element = document.body;
+            for (var i = 0; i < test.tests.length; i++) {
+                test.currentGroup = test.tests[i].group;
+                var groupID = 'test-' + test.currentGroup.replace(/ /g, '-').toLowerCase();
+                console.log(groupID);
+                test.element = document.getElementById(groupID);
+                if (!test.element) {
+                    var heading = document.createElement('h2');
+                    heading.innerHTML = test.currentGroup;
+                    document.body.appendChild(heading);
+                    test.element = document.body.appendChild(document.createElement('div'));
+                    test.element.id = groupID;
                 }
-                var elements = test.testFunctions[i]._elements;
+                try {
+                    test.tests[i].proc();
+                } catch (e) {
+                    ok(false, decamelize(functionName(test.tests[i].proc)), e);
+                }
+                var elements = test.tests[i]._elements;
                 for (var j = 0; elements && j < elements.length; j++) {
                     elements[j].parentNode.removeChild(elements[j]);
                 }
             }
         }
     }
-    test.testFunctions.push(f);
+    test.tests.push({ group: test.currentGroup, proc: f });
+}
+
+function testGroup(group) {
+    test.currentGroup = group;
 }
 
 function ok(a, text, description) {
     text = text || decamelize(functionName(arguments.callee.caller));
-    var msg = document.body.appendChild(document.createElement('span'));
+    var msg = test.element.appendChild(document.createElement('span'));
     msg.appendChild(document.createTextNode((a ? 'ok' : 'ng') + ' - ' + text));
     msg.appendChild(document.createElement('br'));
     if (description) {
@@ -44,7 +60,6 @@ function ok(a, text, description) {
         msg.appendChild(document.createElement('br'));
     }
     msg.className = (a ? 'test-ok' : 'test-ng');
-    scrollTo(0, document.body.scrollHeight);
 }
 
 function is(a, b, text) {
@@ -83,7 +98,7 @@ function equals(a, b) {
 }
 
 function _element(tag) {
-    var element = document.body.appendChild(document.createElement(tag));
+    var element = test.element.appendChild(document.createElement(tag));
 
     if (!arguments.callee.caller._elements)
         arguments.callee.caller._elements = [];
@@ -104,6 +119,8 @@ var a2 = Arrow.constant(2);
 var aFail = Arrow.named('aFail')(function() { throw 'aFail exception not caught' });
 var aPlus1 = Arrow(function(x) { return x + 1 });
 var aMul3  = Arrow(function(x) { return x * 3 });
+
+testGroup('Basic methods');
 
 test(function simpleArrow() {
     is(a1.call(), 1);
@@ -133,6 +150,8 @@ test(function chooseArrows() {
     is(((aFail)['+++'](a1)).call(), 1);
 });
 
+testGroup('Operators');
+
 test(function operatorsDiffer() {
     var ops = ['>', '&', '*', '+', '|'];
     for (var i = 0; i < ops.length; i++) {
@@ -145,7 +164,8 @@ test(function operatorsDiffer() {
     }
 });
 
-// Asynchronous
+testGroup('Asynchronous arrows');
+
 test(function delayedArrow() {
     (a1)['>>>'](Arrow.Delay(500))['>>>'](function(x) { is(x, 1, 'delayed arrow') }).call();
 });
