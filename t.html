@@ -21,7 +21,7 @@ function test(f) {
                 try {
                     test.testFunctions[i]();
                 } catch (e) {
-                    ok(false, decamelize(test.testFunctions[i].name), e);
+                    ok(false, decamelize(functionName(test.testFunctions[i])), e);
                 }
                 var elements = test.testFunctions[i]._elements;
                 for (var j = 0; elements && j < elements.length; j++) {
@@ -34,7 +34,7 @@ function test(f) {
 }
 
 function ok(a, text, description) {
-    text = text || decamelize(arguments.callee.caller.name);
+    text = text || decamelize(functionName(arguments.callee.caller));
     var msg = document.body.appendChild(document.createElement('span'));
     msg.appendChild(document.createTextNode((a ? 'ok' : 'ng') + ' - ' + text));
     msg.appendChild(document.createElement('br'));
@@ -47,9 +47,17 @@ function ok(a, text, description) {
 }
 
 function is(a, b, text) {
-    text = text || decamelize(arguments.callee.caller.name);
+    text = text || decamelize(functionName(arguments.callee.caller));
     var is = equals(a, b);
     ok(is, text, !is && ('expected ' + b + ', got ' + a));
+}
+
+function functionName(func) {
+    if (func) {
+        return func.name || func.toString().match(/function (\w+)/)[1];
+    } else {
+        return '';
+    }
 }
 
 function decamelize(str) {
@@ -94,27 +102,36 @@ test(function simpleArrow() {
 });
 
 test(function connectedArrows() {
-    is(a1.next(aPlus1).call(), 2);
+    is((a1)['>>>'](aPlus1).call(), 2);
 });
 
 test(function threeConnectedArrows() {
-    is(a1.next(aPlus1).next(aMul3).call(), 6);
+    is((a1)['>>>'](aPlus1)['>>>'](aMul3).call(), 6);
 });
 
+test(function forkedArrows() {
+    is((a1)['>>>']((aPlus1)['&&&'](aMul3)).call(), [2, 3]);
+});
+
+test(function combinedArrows() {
+    is(((a1)['&&&'](a1))['>>>']((aPlus1)['***'](aMul3)).call(), [2, 3]);
+});
+
+// Asynchronous
 test(function delayedArrow() {
-    a1.next(Arrow.Delay(500)).next(function(x) { is(x, 1, 'delayed arrow') }).call();
+    (a1)['>>>'](Arrow.Delay(500))['>>>'](function(x) { is(x, 1, 'delayed arrow') }).call();
 });
 
 test(function clickEvent() {
     Arrow.Event(document, 'click')
-        .next(function(x) { is(x, '[object MouseEvent]', 'click event') }).call();
+        ['>>>'](function(e) { is(e.type, 'click', 'click event') }).call();
 });
 
 test(function keypressAndMousemoveEvent() {
-    Arrow.Event(document, 'keypress')
-        .next(function(e) { is(e, '[object KeyboardEvent]', 'keydown event [' + String.fromCharCode(e.charCode) + '] - then move mouse') })
-        .next(Arrow.Event(document, 'mousemove'))
-        .next(function(e) { is(e, '[object MouseEvent]', 'keydown and mouesmove event') }).call();
+    (Arrow.Event(document, 'keypress'))
+        ['>>>'](function(e) { is(e.type, 'keypress', 'keypress event [' + String.fromCharCode(e.charCode) + '] - then move mouse') })
+        ['>>>'](Arrow.Event(document, 'mousemove'))
+        ['>>>'](function(e) { is(e.type, 'mousemove', 'keydown and mouesmove event') }).call();
 });
         </script>
     </body>
