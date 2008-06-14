@@ -36,6 +36,8 @@ Arrow.constant = function(x) {
     return Arrow.named('const ' + x)(function() { return x });
 }
 
+Arrow.Identity = Arrow(function(x) { return x });
+
 Arrow.prototype.name = '(no name)';
 
 Arrow.prototype.call = function(x) {

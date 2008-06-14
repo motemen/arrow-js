@@ -123,15 +123,26 @@ test(function delayedArrow() {
 });
 
 test(function clickEvent() {
-    Arrow.Event(document, 'click')
-        ['>>>'](function(e) { is(e.type, 'click', 'click event') }).call();
+    (Arrow.Event(document, 'click'))
+        ['>>>']
+    (function(e) { is(e.type, 'click', 'click event') }).call();
 });
 
 test(function keypressAndMousemoveEvent() {
     (Arrow.Event(document, 'keypress'))
-        ['>>>'](function(e) { is(e.type, 'keypress', 'keypress event [' + String.fromCharCode(e.charCode) + '] - then move mouse') })
-        ['>>>'](Arrow.Event(document, 'mousemove'))
-        ['>>>'](function(e) { is(e.type, 'mousemove', 'keydown and mouesmove event') }).call();
+        ['>>>']
+    (function(e) {
+        var key = String.fromCharCode(e.charCode);
+        is(e.type, 'keypress', 'keypress event [' + key + '] - then move mouse');
+        return key;
+    })
+        ['>>>']
+    ((Arrow.Identity)['&&&'](Arrow.Event(document, 'mousemove')))
+        ['>>>']
+    (function(x) {
+        var key = x[0], e = x[1];
+        is(e.type, 'mousemove', 'keypress [' + key + '] and mouesmove event')
+    }).call();
 });
         </script>
     </body>
