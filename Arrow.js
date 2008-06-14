@@ -38,7 +38,7 @@ Arrow.constant = function(x) {
 
 Arrow.Identity = Arrow(function(x) { return x });
 
-Arrow.prototype.name = '(no name)';
+Arrow.prototype.name = 'unnamed';
 
 Arrow.prototype.call = function(x) {
     var result;
@@ -47,7 +47,11 @@ Arrow.prototype.call = function(x) {
 }
 
 Arrow.prototype.callCPS = function(x, k) {
-    this.cpsFunction(x, k);
+    try {
+        this.cpsFunction(x, k);
+    } catch (e) {
+        k(Arrow.Error(e));
+    }
 }
 
 Arrow.prototype.toString = function() {
@@ -58,13 +62,13 @@ Arrow.prototype.toString = function() {
 //
 // x -> y -> z
 //
-//  +---+  +---+
-// -| f |->| g |->
-//  +---+  +---+
+//  +---+ +---+
+// -| f |-| g |->
+//  +---+ +---+
 //
 Arrow.prototype['>>>'] = function(g) {
     var f = this, g = Arrow(g);
-    return Arrow.fromCPS.named(f.name + ' >>> ' + g.name)(function(x, k) {
+    return Arrow.fromCPS.named('(' + f.name + ') >>> (' + g.name + ')')(function(x, k) {
         f.callCPS(x, function(y) { g.callCPS(y, k) });
     });
 }
@@ -85,7 +89,7 @@ Arrow.prototype.next = Arrow.prototype['>>>'];
 //
 Arrow.prototype['&&&'] = function(g) {
     var f = this, g = Arrow(g);
-    return Arrow.fromCPS.named(f.name + ' &&& ' + g.name)(function(x, k) {
+    return Arrow.fromCPS.named('(' + f.name + ') &&& (' + g.name + ')')(function(x, k) {
         var results = { };
         function callCont() {
             if ('f' in results && 'g' in results) {
@@ -110,7 +114,7 @@ Arrow.prototype['&&&'] = function(g) {
 //
 Arrow.prototype['***'] = function(g) {
     var f = this, g = Arrow(g);
-    return Arrow.fromCPS.named(f.name + ' *** ' + g.name)(function(x, k) {
+    return Arrow.fromCPS.named('(' + f.name + ') *** (' + g.name + ')')(function(x, k) {
         if (typeof x == 'undefined') {
             x = [];
         }
@@ -137,6 +141,19 @@ Arrow.prototype['***'] = function(g) {
 // -| g |-+
 //  +---+
 //
+Arrow.prototype['|||'] = function() {
+    var f = this, g = Arrow(g);
+    return Arrow.fromCPS.named('(' + f.name + ') ||| (' + g.name + ')')(function(x, k) {
+        if (typeof x == 'undefined') {
+            x = [];
+        }
+        if (x[0]) {
+            f.callCPS(x[0], k);
+        } else if (x[1]) {
+            g.callCPS(x[1], k);
+        }
+    });
+}
 
 // Choose arrow
 //
@@ -150,6 +167,30 @@ Arrow.prototype['***'] = function(g) {
 // +-| g |-+
 //   +---+
 //
+Arrow.prototype['+++'] = function(g) {
+    var f = this, g = Arrow(g);
+    return Arrow.fromCPS.named(f.name + ' +++ ' + g.name)(function(x, k) {
+        function callCont(y) {
+            if (y instanceof Arrow.Error)
+                return;
+            k(y);
+            callCont = function() { };
+        }
+        f.callCPS(x, callCont);
+        g.callCPS(x, callCont);
+    });
+}
+
+Arrow.Error = function(e) {
+    if (!(this instanceof Arrow.Error))
+        return new Arrow.Error(e);
+    this.error = e;
+}
+
+Arrow.Error.prototype.toString = function() {
+    return '[Arrow.Error ' + this.error + ']';
+}
+
 Arrow.Delay = function(msec) {
     return Arrow.fromCPS(function(x, k) {
         setTimeout(function() { k(x) }, msec);
