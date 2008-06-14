@@ -109,3 +109,16 @@ Arrow.Event = function(object, event) {
         object.addEventListener(event, listener, true);
     });
 }
+
+/* Special operator */
+var _ = {
+    valueOf: function() {
+        return (_.i = (_.i + 1) % 2) ? 2 : 3;
+    },
+    i: 0
+}
+Array.prototype[_>_] = Array.prototype['>>>'];
+Array.prototype[_+_] = Array.prototype['+++'];
+Array.prototype[_*_] = Array.prototype['***'];
+Array.prototype[_|_] = Array.prototype['|||'];
+Array.prototype[_&_] = Array.prototype['&&&'];

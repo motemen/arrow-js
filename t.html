@@ -52,6 +52,12 @@ function is(a, b, text) {
     ok(is, text, !is && ('expected ' + b + ', got ' + a));
 }
 
+function isnt(a, b, text) {
+    text = text || decamelize(functionName(arguments.callee.caller));
+    var is = equals(a, b);
+    ok(!is, text);
+}
+
 function functionName(func) {
     if (func) {
         return func.name || func.toString().match(/function (\w+)/)[1];
@@ -115,6 +121,18 @@ test(function forkedArrows() {
 
 test(function combinedArrows() {
     is(((a1)['&&&'](a1))['>>>']((aPlus1)['***'](aMul3)).call(), [2, 3]);
+});
+
+test(function operatorsDiffer() {
+    var ops = ['>', '&', '*', '+', '|'];
+    for (var i = 0; i < ops.length; i++) {
+        var op1 = ops[i];
+        for (var j = 0; j < ops.length; j++) {
+            if (i == j) continue;
+            var op2 = ops[j];
+            isnt(eval('_' + op1 + '_'), eval('_' + op2 + '_'), '_' + op1 + '_ and _' + op2 + '_ differ');
+        }
+    }
 });
 
 // Asynchronous
