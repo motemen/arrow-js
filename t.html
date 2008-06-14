@@ -44,6 +44,7 @@ function ok(a, text, description) {
         msg.appendChild(document.createElement('br'));
     }
     msg.className = (a ? 'test-ok' : 'test-ng');
+    scrollTo(0, document.body.scrollHeight);
 }
 
 function is(a, b, text) {

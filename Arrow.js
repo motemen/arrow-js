@@ -112,13 +112,16 @@ Arrow.Event = function(object, event) {
 
 /* Special operator */
 var _ = {
-    valueOf: function() {
-        return (_.i = (_.i + 1) % 2) ? 2 : 3;
-    },
-    i: 0
+    valueOf: (function(i) {
+        i = 0;
+        return function() {
+            return (i = ++i % 2) ? 2 : 3;
+        }
+    })()
 }
-Array.prototype[_>_] = Array.prototype['>>>'];
-Array.prototype[_+_] = Array.prototype['+++'];
-Array.prototype[_*_] = Array.prototype['***'];
-Array.prototype[_|_] = Array.prototype['|||'];
-Array.prototype[_&_] = Array.prototype['&&&'];
+
+Arrow.prototype[_>_] = Arrow.prototype['>>>'];
+Arrow.prototype[_+_] = Arrow.prototype['+++'];
+Arrow.prototype[_*_] = Arrow.prototype['***'];
+Arrow.prototype[_|_] = Arrow.prototype['|||'];
+Arrow.prototype[_&_] = Arrow.prototype['&&&'];
