@@ -153,8 +153,8 @@ test(function combineArrows() {
 });
 
 test(function joinArrows() {
-    is(((a1)['&&&'](aFail))['>>>']((a1)['|||'](a2)).call(), 1);
-    is(((aFail)['&&&'](a1))['>>>']((a1)['|||'](a2)).call(), 2);
+    is((a1)['>>>']((a1)['|||'](a2)).call(), 1);
+    is((aFail)['>>>']((a1)['|||'](a2)).call(), 2);
 });
 
 test(function chooseArrows() {

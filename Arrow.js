@@ -146,32 +146,8 @@ Arrow.prototype.and = Arrow.prototype['***'];
 
 // Join arrows
 //
-// [x1, x2] -> y
-//
-//  +---+
-// -| f |-+
-//  +---+ |
-//        +->
-//  +---+ |
-// -| g |-+
-//  +---+
-//
-Arrow.prototype['|||'] = function(g) {
-    var f = this, g = Arrow(g);
-    return Arrow.fromCPS.named('(' + f.name + ') ||| (' + g.name + ')')(function(x, k) {
-        if (typeof x == 'undefined') {
-            x = [];
-        }
-        if (x instanceof Arrow.Error) {
-            g.callCPS(x, k);
-        }
-        if (x[0] && !(x[0] instanceof Arrow.Error)) {
-            f.callCPS(x[0], k);
-        } else if (x[1]) {
-            g.callCPS(x[1], k);
-        }
-    });
-}
+// x1 or x2 -> y
+// TODO
 
 Arrow.prototype.joinNext = function(f, g) {
     return this.next((f)['|||'](g));
@@ -179,29 +155,8 @@ Arrow.prototype.joinNext = function(f, g) {
 
 // Choose arrow
 //
-// x -> y
-//
-//   +---+
-// +-| f |-+
-// | +---+ |
-//-+       +->
-// | +---+ |
-// +-| g |-+
-//   +---+
-//
-Arrow.prototype['+++'] = function(g) {
-    var f = this, g = Arrow(g);
-    return Arrow.fromCPS.named(f.name + ' +++ ' + g.name)(function(x, k) {
-        function callCont(y) {
-            if (y instanceof Arrow.Error)
-                return;
-            k(y);
-            callCont = function() { };
-        }
-        f.callCPS(x, callCont);
-        g.callCPS(x, callCont);
-    });
-}
+// x1 -> y1 or x2 -> y2
+// TODO
 
 Arrow.prototype.or = Arrow.prototype['+++'];
 /*
