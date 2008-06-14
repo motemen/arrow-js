@@ -144,21 +144,31 @@ Arrow.prototype['***'] = function(g) {
 
 Arrow.prototype.and = Arrow.prototype['***'];
 
-// Join arrows
-//
-// x1 or x2 -> y
-// TODO
-
-Arrow.prototype.joinNext = function(f, g) {
-    return this.next((f)['|||'](g));
-}
-
 // Choose arrow
 //
-// x1 -> y1 or x2 -> y2
-// TODO
+// x1 or x2 -> y
+//
+//    +---+
+//  .-| f |-+
+// /  +---+ |
+//          +->
+//    +---+ |
+//   -| g |-+
+//    +---+
+Arrow.prototype['|||'] = function(g) {
+    var f = this, g = Arrow(g);
+    return Arrow.fromCPS.named('(' + f.name + ') ||| (' + g.name + ')')(function(x, k) {
+        if (x instanceof Arrow.Error) {
+            g.callCPS(x, k);
+        } else {
+            f.callCPS(x, k);
+        }
+    });
+}
 
-Arrow.prototype.or = Arrow.prototype['+++'];
+Arrow.prototype.chooseNext = function(f, g) {
+    return this.next((f)['|||'](g));
+}
 /*
  * }}}
  */

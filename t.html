@@ -152,13 +152,9 @@ test(function combineArrows() {
     is(((a1)['&&&'](a1))['>>>']((aPlus1)['***'](aMul3)).call(), [2, 3]);
 });
 
-test(function joinArrows() {
+test(function chooseArrow() {
     is((a1)['>>>']((a1)['|||'](a2)).call(), 1);
     is((aFail)['>>>']((a1)['|||'](a2)).call(), 2);
-});
-
-test(function chooseArrows() {
-    is(((aFail)['+++'](a1)).call(), 1);
 });
 
 testGroup('Syntax');
@@ -175,12 +171,9 @@ test(function combineArrows() {
     is(((a1)[_&_](a1))[_>_]((aPlus1)[_*_](aMul3)).call(), [2, 3]);
 });
 
-test(function joinArrows() {
-    is(((a1)[_&_](aFail))[_>_]((a1)[_|_](a2)).call(), 1);
-});
-
-test(function chooseArrows() {
-    is(((aFail)[_+_](a1)).call(), 1);
+test(function chooseArrow() {
+    is((a1)[_>_]((a1)[_|_](a2)).call(), 1);
+    is((aFail)[_>_]((a1)[_|_](a2)).call(), 2);
 });
 
 testGroup('Operators');
@@ -237,11 +230,11 @@ test(function xhrArrow() {
 });
 
 test(function jsonpArrow() {
-    var url = 'http://s.hatena.ne.jp/entries.json?uri=http://d.hatena.ne.jp/motemen/20080514/1210751236';
-    (Arrow.JSONP(url))
+    var url = 'http://d.hatena.ne.jp/motemen/20080514/1210751236';
+    (Arrow.JSONP('http://s.hatena.ne.jp/entries.json?uri=' + url))
         ['>>>']
     (
-        (Arrow(function(json) { is(json.uri, url, 'JSONP arrow') }))
+        (Arrow(function(json) { is(json.entries[0].uri, url, 'JSONP arrow') }))
             ['|||']
         (Arrow(function(e) { ok(e, 'JSONP failed: ' + e) }))
     )
