@@ -21,14 +21,20 @@ function test(f) {
             for (var i = 0; i < test.tests.length; i++) {
                 test.currentGroup = test.tests[i].group;
                 var groupID = 'test-' + test.currentGroup.replace(/ /g, '-').toLowerCase();
-                console.log(groupID);
                 test.element = document.getElementById(groupID);
                 if (!test.element) {
                     var heading = document.createElement('h2');
                     heading.innerHTML = test.currentGroup;
+                    heading.onclick = function() {
+                        var display = this.nextSibling.style.display;
+                        this.nextSibling.style.display = (display == 'none' ? '' : 'none');
+                    }
+                    heading.style.cursor = 'pointer';
                     document.body.appendChild(heading);
-                    test.element = document.body.appendChild(document.createElement('div'));
+                    test.element = document.createElement('div');
                     test.element.id = groupID;
+                    test.element.style.display = 'none';
+                    test.element = document.body.appendChild(test.element);
                 }
                 try {
                     test.tests[i].proc();
@@ -60,6 +66,10 @@ function ok(a, text, description) {
         msg.appendChild(document.createElement('br'));
     }
     msg.className = (a ? 'test-ok' : 'test-ng');
+    var heading = test.element.previousSibling;
+    if (heading) {
+        heading.innerHTML += '<span class="' + msg.className + '">' + (a ? '+' : '-') + '</span>';
+    }
 }
 
 function is(a, b, text) {
@@ -148,6 +158,28 @@ test(function joinArrows() {
 
 test(function chooseArrows() {
     is(((aFail)['+++'](a1)).call(), 1);
+});
+
+testGroup('Syntax');
+
+test(function threeConnectedArrows() {
+    is((a1)[_>_](aPlus1)[_>_](aMul3).call(), 6);
+});
+
+test(function forkArrows() {
+    is((a1)[_>_]((aPlus1)[_&_](aMul3)).call(), [2, 3]);
+});
+
+test(function combineArrows() {
+    is(((a1)[_&_](a1))[_>_]((aPlus1)[_*_](aMul3)).call(), [2, 3]);
+});
+
+test(function joinArrows() {
+    is(((a1)[_&_](aFail))[_>_]((a1)[_|_](a2)).call(), 1);
+});
+
+test(function chooseArrows() {
+    is(((aFail)[_+_](a1)).call(), 1);
 });
 
 testGroup('Operators');
