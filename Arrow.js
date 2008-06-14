@@ -1,27 +1,30 @@
-function Arrow(cpsFunction) {
-    if (!(this instanceof Arrow)) {
-        return new Arrow(cpsFunction);
+function Arrow(f) {
+    if (f instanceof Arrow) {
+        return f;
     }
-    this.cpsFunction = cpsFunction;
+    if (!(this instanceof Arrow)) {
+        return new Arrow(f);
+    }
+    if (f) {
+        this.cpsFunction = function(x, k) { return k(f(x)) };
+    }
 }
 
-Arrow.pure = function(f) {
-    return Arrow(function(x, k) {
-        return k(f(x));
-    });
+Arrow.fromCPS = function(cpsFunction) {
+    var arrow = new Arrow;
+    arrow.cpsFunction = cpsFunction;
+    return arrow;
 }
 
 Arrow.constant = function(value) {
-    return Arrow.pure(function() {
+    return Arrow(function() {
         return value;
     });
 }
 
 Arrow.prototype.next = function(g) {
-    if (typeof g == 'function')
-        g = Arrow.pure(g);
-    var f = this.cpsFunction, g = g.cpsFunction;
-    return Arrow(function(x, k) {
+    var f = this.cpsFunction, g = Arrow(g).cpsFunction;
+    return Arrow.fromCPS(function(x, k) {
         f(x, function(y) { g(y, k) });
     });
 }
@@ -33,13 +36,13 @@ Arrow.prototype.call = function(x) {
 }
 
 Arrow.Delay = function(msec) {
-    return Arrow(function(x, k) {
+    return Arrow.fromCPS(function(x, k) {
         setTimeout(function() { k(x) }, msec);
     });
 }
 
 Arrow.Event = function(object, event) {
-    return Arrow(function(x, k) {
+    return Arrow.fromCPS(function(x, k) {
         var listener = function(e) {
             object.removeEventListener(event, listener, true);
             k(e);

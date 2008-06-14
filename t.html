@@ -86,8 +86,8 @@ function _clearElements() {
 
 var a1 = Arrow.constant(1);
 var a2 = Arrow.constant(2);
-var aPlus1 = Arrow.pure(function(x) { return x + 1 });
-var aMul3  = Arrow.pure(function(x) { return x * 3 });
+var aPlus1 = Arrow(function(x) { return x + 1 });
+var aMul3  = Arrow(function(x) { return x * 3 });
 
 test(function simpleArrow() {
     is(a1.call(), 1);
