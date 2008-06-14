@@ -154,6 +154,7 @@ test(function combineArrows() {
 
 test(function joinArrows() {
     is(((a1)['&&&'](aFail))['>>>']((a1)['|||'](a2)).call(), 1);
+    is(((aFail)['&&&'](a1))['>>>']((a1)['|||'](a2)).call(), 2);
 });
 
 test(function chooseArrows() {
@@ -225,11 +226,26 @@ test(function keypressAndMousemoveEvent() {
     }).call();
 });
 
+test(function xhrArrow() {
+    (Arrow.XHR('http://www.example.com/'))
+        ['>>>']
+    (
+        (Arrow(function(xhr) { ng(xhr, 'XHR arrow should not success') }))
+            ['|||']
+        (Arrow(function(e) { ok(e, 'XHR arrow fail route') }))
+    ).call();
+});
+
 test(function jsonpArrow() {
     var url = 'http://s.hatena.ne.jp/entries.json?uri=http://d.hatena.ne.jp/motemen/20080514/1210751236';
     (Arrow.JSONP(url))
         ['>>>']
-    (Arrow(function(json) { is(json.uri, url, 'JSONP arrow') }));
+    (
+        (Arrow(function(json) { is(json.uri, url, 'JSONP arrow') }))
+            ['|||']
+        (Arrow(function(e) { ok(e, 'JSONP failed: ' + e) }))
+    )
+        .call();
 });
         </script>
     </body>

@@ -156,13 +156,16 @@ Arrow.prototype.and = Arrow.prototype['***'];
 // -| g |-+
 //  +---+
 //
-Arrow.prototype['|||'] = function() {
+Arrow.prototype['|||'] = function(g) {
     var f = this, g = Arrow(g);
     return Arrow.fromCPS.named('(' + f.name + ') ||| (' + g.name + ')')(function(x, k) {
         if (typeof x == 'undefined') {
             x = [];
         }
-        if (x[0]) {
+        if (x instanceof Arrow.Error) {
+            g.callCPS(x, k);
+        }
+        if (x[0] && !(x[0] instanceof Arrow.Error)) {
             f.callCPS(x[0], k);
         } else if (x[1]) {
             g.callCPS(x[1], k);
@@ -225,13 +228,13 @@ Arrow.Error.prototype.toString = function() {
  * Asynchronous Arrows {{{
  */
 Arrow.Delay = function(msec) {
-    return Arrow.fromCPS(function(x, k) {
+    return Arrow.fromCPS.named('delay ' + msec + 'msec')(function(x, k) {
         setTimeout(function() { k(x) }, msec);
     });
 }
 
 Arrow.Event = function(object, event) {
-    return Arrow.fromCPS(function(x, k) {
+    return Arrow.fromCPS.named('event ' + object + ' ' + event)(function(x, k) {
         var stop = false;
         var listener = function(e) {
             if (stop) return;
@@ -239,6 +242,42 @@ Arrow.Event = function(object, event) {
             k(e);
         };
         Arrow.Compat.addEventListener(object, event, listener, true);
+    });
+}
+
+// TODO: method, query
+Arrow.XHR = function(url) {
+    return Arrow.fromCPS.named('xhr ' + url)(function(x, k) {
+        try {
+            var xhr = Arrow.Compat.newXHR();
+            xhr.onreadystatechange = function() {
+                if (xhr.readyState == 4) {
+                    if (/^2\d\d$/.exec(xhr.status)) {
+                        k([xhr, undefined]);
+                    } else {
+                        k([undefined, Arrow.Error(xhr)]);
+                    }
+                }
+            };
+            xhr.open('GET', url, true);
+            xhr.send(null);
+        } catch (e) {
+            k([undefined, e]);
+        }
+    });
+}
+
+Arrow.JSONP = function(url) {
+    if (!('_count' in Arrow.JSONP))
+        Arrow.JSONP._count = 0;
+
+    return Arrow.fromCPS.named('JSONP ' + url)(function(x, k) {
+        Arrow.JSONP['callback' + Arrow.JSONP._count] = k;
+        var script = document.createElement('script');
+        script.src = url + (url.indexOf('?') != -1 ? '&' : '?') + 'callback=Arrow.JSONP.callback' + Arrow.JSONP._count;
+        script.type = 'text/javascript';
+        document.getElementsByTagName('head')[0].appendChild(script);
+        Arrow.JSONP._count++;
     });
 }
 /*
@@ -256,6 +295,10 @@ Arrow.Compat.addEventListener = function(object, event, callback, capture) {
     } else {
         return object.attachEvent('on' + event, function() { callback(window.event) });
     }
+}
+
+Arrow.Compat.newXHR = function() {
+    return new XMLHttpRequest;
 }
 /*
  * }}}
