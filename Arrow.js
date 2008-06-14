@@ -1,3 +1,6 @@
+/*
+ * Arrow Core {{{
+ */
 function Arrow(f) {
     if (f instanceof Arrow)
         return f;
@@ -57,7 +60,13 @@ Arrow.prototype.callCPS = function(x, k) {
 Arrow.prototype.toString = function() {
     return '[Arrow' + (this.name ? ' ' + this.name : '') + ']';
 }
+/*
+ * }}}
+ */
 
+/*
+ * Basic Arrow Operators {{{
+ */
 // Compose arrows
 //
 // x -> y -> z
@@ -192,7 +201,13 @@ Arrow.prototype['+++'] = function(g) {
 }
 
 Arrow.prototype.or = Arrow.prototype['+++'];
+/*
+ * }}}
+ */
 
+/*
+ * Arrow.Error {{{
+ */
 Arrow.Error = function(e) {
     if (!(this instanceof Arrow.Error))
         return new Arrow.Error(e);
@@ -202,7 +217,13 @@ Arrow.Error = function(e) {
 Arrow.Error.prototype.toString = function() {
     return '[Arrow.Error ' + this.error + ']';
 }
+/*
+ * }}}
+ */
 
+/*
+ * Asynchronous Arrows {{{
+ */
 Arrow.Delay = function(msec) {
     return Arrow.fromCPS(function(x, k) {
         setTimeout(function() { k(x) }, msec);
@@ -211,15 +232,38 @@ Arrow.Delay = function(msec) {
 
 Arrow.Event = function(object, event) {
     return Arrow.fromCPS(function(x, k) {
+        var stop = false;
         var listener = function(e) {
-            object.removeEventListener(event, listener, true);
+            if (stop) return;
+            stop = true;
             k(e);
         };
-        object.addEventListener(event, listener, true);
+        Arrow.Compat.addEventListener(object, event, listener, true);
     });
 }
+/*
+ * }}}
+ */
 
-/* Special operator */
+/*
+ * Browser Compatibles {{{
+ */
+Arrow.Compat = { };
+
+Arrow.Compat.addEventListener = function(object, event, callback, capture) {
+    if (object.addEventListener) {
+        return object.addEventListener(event, callback, capture);
+    } else {
+        return object.attachEvent('on' + event, function() { callback(window.event) });
+    }
+}
+/*
+ * }}}
+ */
+
+/*
+ * Special Operators {{{
+ */
 var _ = {
     valueOf: (function(i) {
         i = 0;
@@ -234,3 +278,6 @@ Arrow.prototype[_+_] = Arrow.prototype['+++'];
 Arrow.prototype[_*_] = Arrow.prototype['***'];
 Arrow.prototype[_|_] = Arrow.prototype['|||'];
 Arrow.prototype[_&_] = Arrow.prototype['&&&'];
+/*
+ * }}}
+ */

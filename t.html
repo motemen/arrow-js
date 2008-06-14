@@ -212,7 +212,7 @@ test(function keypressAndMousemoveEvent() {
     (Arrow.Event(document, 'keypress'))
         ['>>>']
     (function(e) {
-        var key = String.fromCharCode(e.charCode);
+        var key = String.fromCharCode(e.charCode || e.keyCode);
         is(e.type, 'keypress', 'keypress event [' + key + '] - then move mouse');
         return key;
     })
