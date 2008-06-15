@@ -66,6 +66,7 @@ Arrow.prototype.toString = function() {
 
 /*
  * Basic Arrow Operators {{{
+ * TODO: Give them proper names
  */
 // Compose arrows
 //
@@ -82,6 +83,13 @@ Arrow.prototype['>>>'] = function(g) {
     });
     arrow.f = f;
     arrow.g = g;
+    var cancellers = [];
+    arrow.cancel = function() {
+        if (f.cancel)
+            f.cancel();
+        if (g.cancel)
+            g.cancel();
+    }
     return arrow;
 }
 
@@ -89,7 +97,7 @@ Arrow.prototype.next = Arrow.prototype['>>>'];
 
 // Fork arrow
 //
-// x -> [y1, y2]
+// x -> [y1, y2, ..]
 //
 //    +---+
 //  +-| f |->
@@ -111,13 +119,13 @@ Arrow.prototype['&&&'] = function(g) {
     return (Arrow.Duplicate(parallelA.arrows.length))['>>>'](parallelA);
 }
 
-Arrow.prototype.forkNext = function(f, g) {
-    return this.next((f)['&&&'](g));
+Arrow.prototype.forkNext = function() {
+    return this.next((Arrow.Duplicate(arguments.length))['>>>'](Arrow.Parallel(Array.slice(arguments))));
 }
 
 // Combine arrows
 //
-// [x1, x2] -> [y1, y2]
+// [x1, x2, ..] -> [y1, y2, ..]
 //
 //  +---+
 // -| f |->
@@ -133,6 +141,9 @@ Arrow.prototype['***'] = function(g) {
 
 Arrow.prototype.and = Arrow.prototype['***'];
 
+/*
+ * Arrow.Duplicate {{{
+ */
 Arrow.Duplicate = function(n) {
     if (!(this instanceof Arrow.Duplicate))
         return new Arrow.Duplicate(n);
@@ -148,42 +159,58 @@ Arrow.Duplicate = function(n) {
 }
 
 Arrow.Duplicate.prototype = new Arrow;
+/*
+ * }}}
+ */
+
+// Route arrows
+//
+//      +---+
+//     -| f |-.
+//      +---+  \
+// -+           +-> (choose route by input value)
+//   \  +---+  /
+//    `-| g |-'
+//      +---+
+Arrow.prototype['+++'] = function(g) {
+    var f = this, g = Arrow(g);
+    return Arrow.fromCPS.named('(' + f.name + ') +++ (' + g.name + ')')(function(x, k) {
+        if (x instanceof Arrow.Error) {
+            g.callCPS(x.value, function(y) { k(Arrow.Error(y)) });
+        } else {
+            f.callCPS(x, k);
+        }
+    });
+}
+
+Arrow.prototype.withErrorNext = function(f, g) {
+    return this.next((f)['+++'](g));
+}
 
 // Choose arrow
 //
-//    +---+
-//  .-| f |-.
-// /  +---+  \
-//            `->
-//    +---+
-//  `-| g |-'
-//    +---+
-// TODO: stop the other arrow
-Arrow.prototype['|||'] = function(g) {
+//      +---+
+//    .-| f |-
+//   /  +---+
+// -+           +-> (faster arrow is chosen)
+//   \  +---+  /
+//    `-| g |-'
+//      +---+
+Arrow.prototype['<+>'] = function(g) {
     var f = this, g = Arrow(g);
-    return Arrow.fromCPS.named('(' + f.name + ') ||| (' + g.name + ')')(function(x, k) {
+    return Arrow.fromCPS.named('(' + f.name + ') <+> (' + g.name + ')')(function(x, k) {
         var called;
         function callCont(y) {
             if (!called)
                 k(y);
             called = true;
         }
-        f.callCPS(x, callCont);
-        g.callCPS(x, callCont);
+        f.callCPS(x, function(y) { g.cancel && g.cancel(); callCont(y) });
+        g.callCPS(x, function(y) { f.cancel && f.cancel(); callCont(y) });
     });
 }
 
-// Route arrows
-Arrow.prototype['+++'] = function(g) {
-    var f = this, g = Arrow(g);
-    return Arrow.fromCPS.named('(' + f.name + ') +++ (' + g.name + ')')(function(x, k) {
-        if (x instanceof Arrow.Error) {
-            g.callCPS(x.error, function(y) { k(Arrow.Error(y)) });
-        } else {
-            f.callCPS(x, k);
-        }
-    });
-}
+Arrow.prototype.or = Arrow.prototype['<+>'];
 /*
  * }}}
  */
@@ -232,11 +259,11 @@ Arrow.Parallel.prototype.callCPS = function(xs, k) {
 Arrow.Error = function(e) {
     if (!(this instanceof Arrow.Error))
         return new Arrow.Error(e);
-    this.error = e;
+    this.value = e;
 }
 
 Arrow.Error.prototype.toString = function() {
-    return '[Arrow.Error ' + this.error + ']';
+    return '[Arrow.Error ' + this.value + ']';
 }
 /*
  * }}}
@@ -244,10 +271,12 @@ Arrow.Error.prototype.toString = function() {
 
 /*
  * Asynchronous Arrows {{{
+ * TODO: Add Arrow.Async class
  */
 Arrow.Delay = function(msec) {
     return Arrow.fromCPS.named('delay ' + msec + 'msec')(function(x, k) {
-        setTimeout(function() { k(x) }, msec);
+        this.setTimeoutID = setTimeout(function() { k(x) }, msec);
+        this.cancel = function() { clearTimeout(this.setTimeoutID) };
     });
 }
 
@@ -260,28 +289,33 @@ Arrow.Event = function(object, event) {
             k(e);
         };
         Arrow.Compat.addEventListener(object, event, listener, true);
+        this.cancel = function() { this.stop = true };
     });
 }
 
-// TODO: method, query
+// TODO: Parameters for method, query
 Arrow.XHR = function(url) {
     return Arrow.fromCPS.named('xhr ' + url)(function(x, k) {
+        var stop = false;
         try {
             var xhr = Arrow.Compat.newXHR();
             xhr.onreadystatechange = function() {
+                if (stop)
+                    return;
                 if (xhr.readyState == 4) {
                     if (/^2\d\d$/.exec(xhr.status)) {
-                        k([xhr, undefined]);
+                        k(xhr);
                     } else {
-                        k([undefined, Arrow.Error(xhr)]);
+                        k(Arrow.Error(xhr));
                     }
                 }
             };
             xhr.open('GET', url, true);
             xhr.send(null);
         } catch (e) {
-            k([undefined, e]);
+            k(Arrow.Error(e));
         }
+        this.cancel = function() { stop = true };
     });
 }
 
@@ -303,7 +337,7 @@ Arrow.JSONP = function(url) {
  */
 
 /*
- * Browser Compatibles {{{
+ * Browser Compatibility {{{
  */
 Arrow.Compat = { };
 

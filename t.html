@@ -33,7 +33,6 @@ function test(f) {
                     document.body.appendChild(heading);
                     test.element = document.createElement('div');
                     test.element.id = groupID;
-                    test.element.style.display = 'none';
                     test.element = document.body.appendChild(test.element);
                 }
                 try {
@@ -166,6 +165,16 @@ testGroup('Asynchronous arrows');
 
 test(function delayedArrow() {
     (a1)['>>>'](Arrow.Delay(500))['>>>'](function(x) { is(x, 1, 'delayed arrow') }).call();
+});
+
+test(function chooseArrow() {
+    (
+     ((Arrow.Delay(1))['>>>'](a1))
+        ['<+>']
+     ((Arrow.Delay(1000))['>>>'](a2))
+    )
+    ['>>>']
+    (Arrow(function(x) { is(x, 1, 'faster arrow is chosen') })).call();
 });
 
 test(function clickEvent() {
