@@ -77,9 +77,12 @@ Arrow.prototype.toString = function() {
 //
 Arrow.prototype['>>>'] = function(g) {
     var f = this, g = Arrow(g);
-    return Arrow.fromCPS.named('(' + f.name + ') >>> (' + g.name + ')')(function(x, k) {
+    var arrow = Arrow.fromCPS.named('(' + f.name + ') >>> (' + g.name + ')')(function(x, k) {
         f.callCPS(x, function(y) { g.callCPS(y, k) });
     });
+    arrow.f = f;
+    arrow.g = g;
+    return arrow;
 }
 
 Arrow.prototype.next = Arrow.prototype['>>>'];
@@ -98,16 +101,14 @@ Arrow.prototype.next = Arrow.prototype['>>>'];
 //
 Arrow.prototype['&&&'] = function(g) {
     var f = this, g = Arrow(g);
-    return Arrow.fromCPS.named('(' + f.name + ') &&& (' + g.name + ')')(function(x, k) {
-        var results = { };
-        function callCont() {
-            if ('f' in results && 'g' in results) {
-                k([results.f, results.g]);
-            }
-        }
-        f.callCPS(x, function(y) { results.f = y; callCont() });
-        g.callCPS(x, function(y) { results.g = y; callCont() });
-    });
+    if (f.f && f.f instanceof Arrow.Duplicate) {
+        f = f.g;
+    }
+    if (g.f && g.f instanceof Arrow.Duplicate) {
+        g = g.g;
+    }
+    var parallelA = Arrow.Parallel(f, g);
+    return (Arrow.Duplicate(parallelA.arrows.length))['>>>'](parallelA);
 }
 
 Arrow.prototype.forkNext = function(f, g) {
@@ -127,47 +128,99 @@ Arrow.prototype.forkNext = function(f, g) {
 //
 Arrow.prototype['***'] = function(g) {
     var f = this, g = Arrow(g);
-    return Arrow.fromCPS.named('(' + f.name + ') *** (' + g.name + ')')(function(x, k) {
-        if (typeof x == 'undefined') {
-            x = [];
-        }
-        var results = { };
-        function callCont() {
-            if ('f' in results && 'g' in results) {
-                k([results.f, results.g]);
-            }
-        }
-        f.callCPS(x[0], function(y) { results.f = y; callCont() });
-        g.callCPS(x[1], function(y) { results.g = y; callCont() });
-    });
+    return Arrow.Parallel(f, g);
 }
 
 Arrow.prototype.and = Arrow.prototype['***'];
 
+Arrow.Duplicate = function(n) {
+    if (!(this instanceof Arrow.Duplicate))
+        return new Arrow.Duplicate(n);
+
+    this.name = 'duplicate ' + n;
+    this.cpsFunction = function(x, k) {
+        var xs = [];
+        for (var i = 0; i < n; i++) {
+            xs.push(x);
+        }
+        k(xs);
+    };
+}
+
+Arrow.Duplicate.prototype = new Arrow;
+
 // Choose arrow
 //
-// x1 or x2 -> y
-//
 //    +---+
-//  .-| f |-+
-// /  +---+ |
-//          +->
-//    +---+ |
-//   -| g |-+
+//  .-| f |-.
+// /  +---+  \
+//            `->
 //    +---+
+//  `-| g |-'
+//    +---+
+// TODO: stop the other arrow
 Arrow.prototype['|||'] = function(g) {
     var f = this, g = Arrow(g);
     return Arrow.fromCPS.named('(' + f.name + ') ||| (' + g.name + ')')(function(x, k) {
+        var called;
+        function callCont(y) {
+            if (!called)
+                k(y);
+            called = true;
+        }
+        f.callCPS(x, callCont);
+        g.callCPS(x, callCont);
+    });
+}
+
+// Route arrows
+Arrow.prototype['+++'] = function(g) {
+    var f = this, g = Arrow(g);
+    return Arrow.fromCPS.named('(' + f.name + ') +++ (' + g.name + ')')(function(x, k) {
         if (x instanceof Arrow.Error) {
-            g.callCPS(x, k);
+            g.callCPS(x.error, function(y) { k(Arrow.Error(y)) });
         } else {
             f.callCPS(x, k);
         }
     });
 }
+/*
+ * }}}
+ */
 
-Arrow.prototype.chooseNext = function(f, g) {
-    return this.next((f)['|||'](g));
+
+/*
+ * Arrow.Parallel {{{
+ */
+Arrow.Parallel = function(/* f, g, ... */) {
+    var arrows = [];
+    for (var i = 0; i < arguments.length; i++) {
+        if (arguments[i] instanceof Array) {
+            arrows = arrows.concat(arguments[i]);
+        } else if (arguments[i] instanceof Arrow.Parallel) {
+            arrows = arrows.concat(arguments[i].arrows);
+        } else {
+            arrows.push(arguments[i]);
+        }
+    }
+    if (!(this instanceof Arrow.Parallel)) {
+        return new Arrow.Parallel(arrows);
+    }
+    this.arrows = arrows;
+    this.name = 'paralell ' + arrows;
+}
+
+Arrow.Parallel.prototype = new Arrow;
+
+Arrow.Parallel.prototype.callCPS = function(xs, k) {
+    var fs = this.arrows;
+    var results = [];
+    var count = fs.length;
+    for (var i = 0; i < fs.length; i++) {
+        with ({ i: i }) {
+            fs[i].callCPS(xs[i], function(y) { results[i] = y; if (!--count) k(results) });
+        }
+    }
 }
 /*
  * }}}

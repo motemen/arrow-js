@@ -126,6 +126,7 @@ function _clearElements() {
 
 var a1 = Arrow.constant(1);
 var a2 = Arrow.constant(2);
+var a3 = Arrow.constant(3);
 var aFail = Arrow.named('aFail')(function() { throw 'aFail exception not caught' });
 var aPlus1 = Arrow(function(x) { return x + 1 });
 var aMul3  = Arrow(function(x) { return x * 3 });
@@ -148,46 +149,17 @@ test(function forkArrows() {
     is((a1)['>>>']((aPlus1)['&&&'](aMul3)).call(), [2, 3]);
 });
 
+test(function paralellArrows3() {
+    is((a1)['&&&'](a2)['&&&'](a3).call(), [1, 2, 3]);
+});
+
 test(function combineArrows() {
     is(((a1)['&&&'](a1))['>>>']((aPlus1)['***'](aMul3)).call(), [2, 3]);
 });
 
-test(function chooseArrow() {
-    is((a1)['>>>']((a1)['|||'](a2)).call(), 1);
-    is((aFail)['>>>']((a1)['|||'](a2)).call(), 2);
-});
-
-testGroup('Syntax');
-
-test(function threeConnectedArrows() {
-    is((a1)[_>_](aPlus1)[_>_](aMul3).call(), 6);
-});
-
-test(function forkArrows() {
-    is((a1)[_>_]((aPlus1)[_&_](aMul3)).call(), [2, 3]);
-});
-
-test(function combineArrows() {
-    is(((a1)[_&_](a1))[_>_]((aPlus1)[_*_](aMul3)).call(), [2, 3]);
-});
-
-test(function chooseArrow() {
-    is((a1)[_>_]((a1)[_|_](a2)).call(), 1);
-    is((aFail)[_>_]((a1)[_|_](a2)).call(), 2);
-});
-
-testGroup('Operators');
-
-test(function operatorsDiffer() {
-    var ops = ['>', '&', '*', '+', '|'];
-    for (var i = 0; i < ops.length; i++) {
-        var op1 = ops[i];
-        for (var j = 0; j < ops.length; j++) {
-            if (i == j) continue;
-            var op2 = ops[j];
-            isnt(eval('_' + op1 + '_'), eval('_' + op2 + '_'), '_' + op1 + '_ and _' + op2 + '_ differ');
-        }
-    }
+test(function routeArrow() {
+    is((a1)['>>>']((a1)['+++'](a2)).call(), 1);
+    is((aFail)['>>>']((a1)['+++'](a2)).call(), '[Arrow.Error 2]');
 });
 
 testGroup('Asynchronous arrows');
@@ -224,7 +196,7 @@ test(function xhrArrow() {
         ['>>>']
     (
         (Arrow(function(xhr) { ng(xhr, 'XHR arrow should not success') }))
-            ['|||']
+            ['+++']
         (Arrow(function(e) { ok(e, 'XHR arrow fail route') }))
     ).call();
 });
@@ -235,7 +207,7 @@ test(function jsonpArrow() {
         ['>>>']
     (
         (Arrow(function(json) { is(json.entries[0].uri, url, 'JSONP arrow') }))
-            ['|||']
+            ['+++']
         (Arrow(function(e) { ok(e, 'JSONP failed: ' + e) }))
     )
         .call();
