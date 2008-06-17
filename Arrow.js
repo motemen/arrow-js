@@ -163,12 +163,33 @@ Arrow.Duplicate.prototype = new Arrow;
  * }}}
  */
 
-// Route arrows
+// Choose arrow
 //
 //      +---+
 //     -| f |-.
 //      +---+  \
-// -+           +-> (choose route by input value)
+// -+           +-> (choose route by input value, route information remains)
+//   \  +---+  /
+//    `-| g |-'
+//      +---+
+Arrow.prototype['|||'] = function(g) {
+    var f = this, g = Arrow(g);
+    return Arrow.fromCPS.named('(' + f.name + ') ||| (' + g.name + ')')(function(x, k) {
+        if (x instanceof Arrow.Error) {
+            g.callCPS(x.value, function(y) { k(Arrow.Error(y)) });
+        } else {
+            f.callCPS(x, k);
+        }
+    });
+}
+
+//
+// Join arrows
+//
+//      +---+
+//     -| f |-.
+//      +---+  \
+// -+           +-> (choose route by input value, discard route information)
 //   \  +---+  /
 //    `-| g |-'
 //      +---+
@@ -176,7 +197,7 @@ Arrow.prototype['+++'] = function(g) {
     var f = this, g = Arrow(g);
     return Arrow.fromCPS.named('(' + f.name + ') +++ (' + g.name + ')')(function(x, k) {
         if (x instanceof Arrow.Error) {
-            g.callCPS(x.value, function(y) { k(Arrow.Error(y)) });
+            g.callCPS(x.value, function(y) { k(y) });
         } else {
             f.callCPS(x, k);
         }
