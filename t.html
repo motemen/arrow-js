@@ -156,9 +156,15 @@ test(function combineArrows() {
     is(((a1)['&&&'](a1))['>>>']((aPlus1)['***'](aMul3)).call(), [2, 3]);
 });
 
-test(function routeArrow() {
+test(function chooseArrow() {
+    var x = (Arrow.constant(Arrow.ValueIn(0)(1)))['>>>']((a1)['|||'](a2))['>>>']((aPlus1)['|||'](aPlus1)).call()
+    is(x.index, 0);
+    is(x.value, 2);
+});
+
+test(function joinArrow() {
     is((a1)['>>>']((a1)['+++'](a2)).call(), 1);
-    is((aFail)['>>>']((a1)['+++'](a2)).call(), '[Arrow.Error 2]');
+    is((aFail)['>>>']((a1)['+++'](a2)).call(), 2);
 });
 
 testGroup('Asynchronous arrows');
