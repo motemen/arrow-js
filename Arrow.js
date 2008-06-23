@@ -269,6 +269,15 @@ Arrow.prototype.or = Arrow.prototype['<+>'];
  */
 
 /*
+ * Arrow.Stop {{{
+ */
+Arrow.Stop = Arrow.fromCPS(function(x, k) {
+});
+/*
+ * }}}
+ */
+
+/*
  * Arrow.Value.In {{{
  */
 Arrow.Value = function() { };
