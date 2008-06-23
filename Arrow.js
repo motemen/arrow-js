@@ -181,10 +181,10 @@ Arrow.prototype['|||'] = function(g) {
 
     var arrow = Arrow.fromCPS(function(x, k) {
         var arrows = this.arrows;
-        if (!(x instanceof Arrow.ValueIn)) {
-            x = Arrow.ValueIn(0)(x);
+        if (!(x instanceof Arrow.Value.In)) {
+            x = Arrow.Value.In(0)(x);
         }
-        arrows[x.index].callCPS(x.value, function(y) { k(Arrow.ValueIn(x.index)(y)) });
+        arrows[x.index].callCPS(x.value, function(y) { k(Arrow.Value.In(x.index)(y)) });
     });
 
     arrow.type = '|||';
@@ -208,8 +208,8 @@ Arrow.prototype['+++'] = function(g) {
 
     var arrow = Arrow.fromCPS(function(x, k) {
         var arrows = this.arrows;
-        if (!(x instanceof Arrow.ValueIn)) {
-            x = Arrow.ValueIn(0)(x);
+        if (!(x instanceof Arrow.Value.In)) {
+            x = Arrow.Value.In(0)(x);
         }
         arrows[x.index].callCPS(x.value, k);
     });
@@ -269,19 +269,21 @@ Arrow.prototype.or = Arrow.prototype['<+>'];
  */
 
 /*
- * Arrow.ValueIn {{{
+ * Arrow.Value.In {{{
  */
-Arrow.ValueIn = function(index, value) {
-    if (!(this instanceof Arrow.ValueIn)) {
-        var constructor = Arrow.ValueIn.constructors[index];
+Arrow.Value = function() { };
+
+Arrow.Value.In = function(index, value) {
+    if (!(this instanceof Arrow.Value.In)) {
+        var constructor = Arrow.Value.In.constructors[index];
         if (!constructor) {
-            constructor = Arrow.ValueIn.constructors[index] = function(value) {
+            constructor = Arrow.Value.In.constructors[index] = function(value) {
                 if (!(this instanceof constructor))
                     return new constructor(value);
                 this.index = index;
                 this.value = value;
             };
-            constructor.prototype = new Arrow.ValueIn;
+            constructor.prototype = new Arrow.Value.In;
         }
         if (arguments.length == 1) {
             return constructor;
@@ -293,9 +295,9 @@ Arrow.ValueIn = function(index, value) {
     this.value = value;
 }
 
-Arrow.ValueIn.constructors = [];
+Arrow.Value.In.constructors = [];
 
-Arrow.ValueIn.prototype = new Arrow;
+Arrow.Value.In.prototype = new Arrow.Value;
 /*
  * }}}
  */
@@ -303,7 +305,7 @@ Arrow.ValueIn.prototype = new Arrow;
 /*
  * Arrow.Error {{{
  */
-Arrow.Error = Arrow.ValueIn(1);
+Arrow.Error = Arrow.Value.In(1);
 
 Arrow.Error.prototype.toString = function() {
     return '[Arrow.Error ' + this.value + ']';

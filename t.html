@@ -157,7 +157,7 @@ test(function combineArrows() {
 });
 
 test(function chooseArrow() {
-    var x = (Arrow.constant(Arrow.ValueIn(0)(1)))['>>>']((a1)['|||'](a2))['>>>']((aPlus1)['|||'](aPlus1)).call()
+    var x = (Arrow.constant(Arrow.Value.In(0)(1)))['>>>']((a1)['|||'](a2))['>>>']((aPlus1)['|||'](aPlus1)).call()
     is(x.index, 0);
     is(x.value, 2);
 });
