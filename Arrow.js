@@ -109,18 +109,22 @@ Arrow.prototype.next = Arrow.prototype['>>>'];
 //
 Arrow.prototype['&&&'] = function(g) {
     var f = this, g = Arrow(g);
-    if (f.f && f.f instanceof Arrow.Duplicate) {
-        f = f.g;
-    }
-    if (g.f && g.f instanceof Arrow.Duplicate) {
-        g = g.g;
-    }
-    var parallelA = Arrow.Parallel(f, g);
-    return (Arrow.Duplicate(parallelA.arrows.length))['>>>'](parallelA);
-}
 
-Arrow.prototype.forkNext = function() {
-    return this.next((Arrow.Duplicate(arguments.length))['>>>'](Arrow.Parallel(Array.slice(arguments))));
+    var arrow = Arrow.fromCPS(function(x, k) {
+        var arrows = this.arrows;
+        var results = [];
+        var count = arrows.length;
+        for (var i = 0; i < arrows.length; i++) {
+            with ({ i: i }) {
+                arrows[i].callCPS(x, function(y) { results[i] = y; if (!--count) k(results) });
+            }
+        }
+    });
+
+    arrow.type = '&&&';
+    arrow.arrows = Array.concat(f.type == '&&&' ? f.arrows : f, g.type == '&&&' ? g.arrows : g);
+
+    return arrow;
 }
 
 // Combine arrows
@@ -136,32 +140,25 @@ Arrow.prototype.forkNext = function() {
 //
 Arrow.prototype['***'] = function(g) {
     var f = this, g = Arrow(g);
-    return Arrow.Parallel(f, g);
+
+    var arrow = Arrow.fromCPS(function(x, k) {
+        var arrows = this.arrows;
+        var results = [];
+        var count = arrows.length;
+        for (var i = 0; i < arrows.length; i++) {
+            with ({ i: i }) {
+                arrows[i].callCPS(x[i], function(y) { results[i] = y; if (!--count) k(results) });
+            }
+        }
+    });
+
+    arrow.type = '***';
+    arrow.arrows = Array.concat(f.type == '***' ? f.arrows : f, g.type == '***' ? g.arrows : g);
+
+    return arrow;
 }
 
 Arrow.prototype.and = Arrow.prototype['***'];
-
-/*
- * Arrow.Duplicate {{{
- */
-Arrow.Duplicate = function(n) {
-    if (!(this instanceof Arrow.Duplicate))
-        return new Arrow.Duplicate(n);
-
-    this.name = 'duplicate ' + n;
-    this.cpsFunction = function(x, k) {
-        var xs = [];
-        for (var i = 0; i < n; i++) {
-            xs.push(x);
-        }
-        k(xs);
-    };
-}
-
-Arrow.Duplicate.prototype = new Arrow;
-/*
- * }}}
- */
 
 // Choose arrow
 //
@@ -174,13 +171,19 @@ Arrow.Duplicate.prototype = new Arrow;
 //      +---+
 Arrow.prototype['|||'] = function(g) {
     var f = this, g = Arrow(g);
-    return Arrow.fromCPS.named('(' + f.name + ') ||| (' + g.name + ')')(function(x, k) {
-        if (x instanceof Arrow.Error) {
-            g.callCPS(x.value, function(y) { k(Arrow.Error(y)) });
-        } else {
-            f.callCPS(x.value, function(y) { k(Arrow.ValueIn(0)(y)) });
+
+    var arrow = Arrow.fromCPS(function(x, k) {
+        var arrows = this.arrows;
+        if (!(x instanceof Arrow.ValueIn)) {
+            x = Arrow.ValueIn(0)(x);
         }
+        arrows[x.index].callCPS(x.value, function(y) { k(Arrow.ValueIn(x.index)(y)) });
     });
+
+    arrow.type = '|||';
+    arrow.arrows = Array.concat(f.type == '|||' ? f.arrows : f, g.type == '|||' ? g.arrows : g);
+
+    return arrow;
 }
 
 //
@@ -195,13 +198,19 @@ Arrow.prototype['|||'] = function(g) {
 //      +---+
 Arrow.prototype['+++'] = function(g) {
     var f = this, g = Arrow(g);
-    return Arrow.fromCPS.named('(' + f.name + ') +++ (' + g.name + ')')(function(x, k) {
-        if (x instanceof Arrow.Error) {
-            g.callCPS(x.value, function(y) { k(y) });
-        } else {
-            f.callCPS(x.value, k);
+
+    var arrow = Arrow.fromCPS(function(x, k) {
+        var arrows = this.arrows;
+        if (!(x instanceof Arrow.ValueIn)) {
+            x = Arrow.ValueIn(0)(x);
         }
+        arrows[x.index].callCPS(x.value, k);
     });
+
+    arrow.type = '+++';
+    arrow.arrows = Array.concat(f.type == '+++' ? f.arrows : f, g.type == '+++' ? g.arrows : g);
+
+    return arrow;
 }
 
 Arrow.prototype.withErrorNext = function(f, g) {
@@ -219,57 +228,35 @@ Arrow.prototype.withErrorNext = function(f, g) {
 //      +---+
 Arrow.prototype['<+>'] = function(g) {
     var f = this, g = Arrow(g);
-    return Arrow.fromCPS.named('(' + f.name + ') <+> (' + g.name + ')')(function(x, k) {
+
+    var arrow = Arrow.fromCPS(function(x, k) {
         var called;
+        var arrows = this.arrows;
+        for (var i = 0; i < arrows.length; i++) {
+            with ({ i: i }) {
+                arrows[i].callCPS(x, function(y) { cancelBut(i); callCont(y) });
+            }
+        }
         function callCont(y) {
             if (!called)
                 k(y);
             called = true;
         }
-        f.callCPS(x, function(y) { g.cancel && g.cancel(); callCont(y) });
-        g.callCPS(x, function(y) { f.cancel && f.cancel(); callCont(y) });
+        function cancelBut(index) {
+            for (var i = 0; i < arrows.length; i++) {
+                if (i == index) continue;
+                arrows[i].cancel && arrows[i].cancel();
+            }
+        }
     });
+
+    arrow.type = '<+>';
+    arrow.arrows = Array.concat(f.type == '<+>' ? f.arrows : f, g.type == '<+>' ? g.arrows : g);
+
+    return arrow;
 }
 
 Arrow.prototype.or = Arrow.prototype['<+>'];
-/*
- * }}}
- */
-
-
-/*
- * Arrow.Parallel {{{
- */
-Arrow.Parallel = function(/* f, g, ... */) {
-    var arrows = [];
-    for (var i = 0; i < arguments.length; i++) {
-        if (arguments[i] instanceof Array) {
-            arrows = arrows.concat(arguments[i]);
-        } else if (arguments[i] instanceof Arrow.Parallel) {
-            arrows = arrows.concat(arguments[i].arrows);
-        } else {
-            arrows.push(arguments[i]);
-        }
-    }
-    if (!(this instanceof Arrow.Parallel)) {
-        return new Arrow.Parallel(arrows);
-    }
-    this.arrows = arrows;
-    this.name = 'paralell ' + arrows;
-}
-
-Arrow.Parallel.prototype = new Arrow;
-
-Arrow.Parallel.prototype.callCPS = function(xs, k) {
-    var fs = this.arrows;
-    var results = [];
-    var count = fs.length;
-    for (var i = 0; i < fs.length; i++) {
-        with ({ i: i }) {
-            fs[i].callCPS(xs[i], function(y) { results[i] = y; if (!--count) k(results) });
-        }
-    }
-}
 /*
  * }}}
  */
