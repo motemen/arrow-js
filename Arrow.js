@@ -78,18 +78,21 @@ Arrow.prototype.toString = function() {
 //
 Arrow.prototype['>>>'] = function(g) {
     var f = this, g = Arrow(g);
-    var arrow = Arrow.fromCPS.named('(' + f.name + ') >>> (' + g.name + ')')(function(x, k) {
-        f.callCPS(x, function(y) { g.callCPS(y, k) });
+
+    var arrow = Arrow.fromCPS(function(x, k) {
+        var arrows = this.arrows.slice();
+        (function(x) {
+            if (arrows.length) {
+                arrows.shift().callCPS(x, arguments.callee);
+            } else {
+                k(x);
+            }
+        })(x)
     });
-    arrow.f = f;
-    arrow.g = g;
-    var cancellers = [];
-    arrow.cancel = function() {
-        if (f.cancel)
-            f.cancel();
-        if (g.cancel)
-            g.cancel();
-    }
+
+    arrow.type = '>>>';
+    arrow.arrows = Array.concat(f.type == '>>>' ? f.arrows : f, g.type == '>>>' ? g.arrows : g);
+
     return arrow;
 }
 
