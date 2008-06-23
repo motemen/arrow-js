@@ -58,7 +58,11 @@ Arrow.prototype.callCPS = function(x, k) {
 }
 
 Arrow.prototype.toString = function() {
-    return '[Arrow' + (this.name ? ' ' + this.name : '') + ']';
+    if (this.arrows) {
+        return '(' + this.arrows.join(') ' + this.type + ' (') + ')';
+    } else {
+        return '[Arrow' + (this.name ? ' ' + this.name : '') + ']';
+    }
 }
 /*
  * }}}
@@ -391,27 +395,6 @@ Arrow.Compat.addEventListener = function(object, event, callback, capture) {
 Arrow.Compat.newXHR = function() {
     return new XMLHttpRequest;
 }
-/*
- * }}}
- */
-
-/*
- * Special Operators {{{
- */
-var _ = {
-    valueOf: (function(i) {
-        i = 0;
-        return function() {
-            return (i = ++i % 2) ? 2 : 3;
-        }
-    })()
-}
-
-Arrow.prototype[_>_] = Arrow.prototype['>>>'];
-Arrow.prototype[_+_] = Arrow.prototype['+++'];
-Arrow.prototype[_*_] = Arrow.prototype['***'];
-Arrow.prototype[_|_] = Arrow.prototype['|||'];
-Arrow.prototype[_&_] = Arrow.prototype['&&&'];
 /*
  * }}}
  */
