@@ -178,7 +178,7 @@ Arrow.prototype['|||'] = function(g) {
         if (x instanceof Arrow.Error) {
             g.callCPS(x.value, function(y) { k(Arrow.Error(y)) });
         } else {
-            f.callCPS(x, k);
+            f.callCPS(x.value, function(y) { k(Arrow.ValueIn(0)(y)) });
         }
     });
 }
@@ -199,7 +199,7 @@ Arrow.prototype['+++'] = function(g) {
         if (x instanceof Arrow.Error) {
             g.callCPS(x.value, function(y) { k(y) });
         } else {
-            f.callCPS(x, k);
+            f.callCPS(x.value, k);
         }
     });
 }
