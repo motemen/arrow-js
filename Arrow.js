@@ -43,11 +43,13 @@ Arrow.Identity = Arrow(function(x) { return x });
 
 Arrow.prototype.name = 'unnamed';
 
-Arrow.prototype.call = function(x) {
+Arrow.prototype.run = function(x) {
     var result;
     this.callCPS(x, function(y) { result = y });
     return result;
 }
+
+Arrow.prototype.call = Arrow.prototype.run;
 
 Arrow.prototype.callCPS = function(x, k) {
     try {
