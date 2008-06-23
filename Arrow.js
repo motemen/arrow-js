@@ -73,6 +73,7 @@ Arrow.prototype.toString = function() {
 /*
  * Basic Arrow Operators {{{
  * TODO: Give them proper names
+ * TODO: Arrow.commutiveOperator
  */
 // Compose arrows
 //
@@ -278,6 +279,8 @@ Arrow.Stop = Arrow.fromCPS(function(x, k) {
 /*
  * }}}
  */
+
+// TODO: Arrow.Loop
 
 /*
  * Arrow.Value.In {{{
