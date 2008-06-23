@@ -163,12 +163,33 @@ Arrow.Duplicate.prototype = new Arrow;
  * }}}
  */
 
-// Route arrows
+// Choose arrow
 //
 //      +---+
 //     -| f |-.
 //      +---+  \
-// -+           +-> (choose route by input value)
+// -+           +-> (choose route by input value, route information remains)
+//   \  +---+  /
+//    `-| g |-'
+//      +---+
+Arrow.prototype['|||'] = function(g) {
+    var f = this, g = Arrow(g);
+    return Arrow.fromCPS.named('(' + f.name + ') ||| (' + g.name + ')')(function(x, k) {
+        if (x instanceof Arrow.Error) {
+            g.callCPS(x.value, function(y) { k(Arrow.Error(y)) });
+        } else {
+            f.callCPS(x, k);
+        }
+    });
+}
+
+//
+// Join arrows
+//
+//      +---+
+//     -| f |-.
+//      +---+  \
+// -+           +-> (choose route by input value, discard route information)
 //   \  +---+  /
 //    `-| g |-'
 //      +---+
@@ -176,7 +197,7 @@ Arrow.prototype['+++'] = function(g) {
     var f = this, g = Arrow(g);
     return Arrow.fromCPS.named('(' + f.name + ') +++ (' + g.name + ')')(function(x, k) {
         if (x instanceof Arrow.Error) {
-            g.callCPS(x.value, function(y) { k(Arrow.Error(y)) });
+            g.callCPS(x.value, function(y) { k(y) });
         } else {
             f.callCPS(x, k);
         }
@@ -254,13 +275,41 @@ Arrow.Parallel.prototype.callCPS = function(xs, k) {
  */
 
 /*
+ * Arrow.ValueIn {{{
+ */
+Arrow.ValueIn = function(index, value) {
+    if (!(this instanceof Arrow.ValueIn)) {
+        var constructor = Arrow.ValueIn.constructors[index];
+        if (!constructor) {
+            constructor = Arrow.ValueIn.constructors[index] = function(value) {
+                if (!(this instanceof constructor))
+                    return new constructor(value);
+                this.index = index;
+                this.value = value;
+            };
+            constructor.prototype = new Arrow.ValueIn;
+        }
+        if (arguments.length == 1) {
+            return constructor;
+        } else {
+            return new constructor(value);
+        }
+    }
+    this.index = index;
+    this.value = value;
+}
+
+Arrow.ValueIn.constructors = [];
+
+Arrow.ValueIn.prototype = new Arrow;
+/*
+ * }}}
+ */
+
+/*
  * Arrow.Error {{{
  */
-Arrow.Error = function(e) {
-    if (!(this instanceof Arrow.Error))
-        return new Arrow.Error(e);
-    this.value = e;
-}
+Arrow.Error = Arrow.ValueIn(1);
 
 Arrow.Error.prototype.toString = function() {
     return '[Arrow.Error ' + this.value + ']';
