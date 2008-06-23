@@ -35,7 +35,7 @@ Arrow.fromCPS.named = function(name) {
     }
 };
 
-Arrow.constant = function(x) {
+Arrow.Const = function(x) {
     return Arrow.named('const ' + x)(function() { return x });
 }
 
@@ -224,7 +224,7 @@ Arrow.prototype.withErrorNext = function(f, g) {
     return this.next((f)['+++'](g));
 }
 
-// Choose arrow
+// Fork & choose arrow
 //
 //      +---+
 //    .-| f |-

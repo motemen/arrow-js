@@ -123,9 +123,9 @@ function _clearElements() {
     }
 }
 
-var a1 = Arrow.constant(1);
-var a2 = Arrow.constant(2);
-var a3 = Arrow.constant(3);
+var a1 = Arrow.Const(1);
+var a2 = Arrow.Const(2);
+var a3 = Arrow.Const(3);
 var aFail = Arrow.named('aFail')(function() { throw 'aFail exception not caught' });
 var aPlus1 = Arrow(function(x) { return x + 1 });
 var aMul3  = Arrow(function(x) { return x * 3 });
@@ -157,7 +157,7 @@ test(function combineArrows() {
 });
 
 test(function chooseArrow() {
-    var x = (Arrow.constant(Arrow.Value.In(0)(1)))['>>>']((a1)['|||'](a2))['>>>']((aPlus1)['|||'](aPlus1)).call()
+    var x = (Arrow.Const(Arrow.Value.In(0)(1)))['>>>']((a1)['|||'](a2))['>>>']((aPlus1)['|||'](aPlus1)).call()
     is(x.index, 0);
     is(x.value, 2);
 });
