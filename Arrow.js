@@ -163,8 +163,8 @@ Arrow.defineAssociativeOperator('+++', function(x, k) {
     arrows[x.index].callCPS(x.value, k);
 });
 
-Arrow.prototype.withErrorNext = function(f, g) {
-    return this.next((f)['+++'](g));
+Arrow.prototype.error = function(g) {
+    return this['>>>']((Arrow.Identity)['+++'](g));
 }
 
 // Fork & choose arrow
@@ -277,6 +277,10 @@ Arrow.Delay = function(msec) {
         this.setTimeoutID = setTimeout(function() { k(x) }, msec);
         this.cancel = function() { clearTimeout(this.setTimeoutID) };
     });
+}
+
+Arrow.prototype.wait = function(msec) {
+    return this['>>>'](Arrow.Delay(msec));
 }
 
 Arrow.Event = function(object, event) {
