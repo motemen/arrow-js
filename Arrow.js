@@ -13,37 +13,11 @@ function Arrow(f) {
     }
 }
 
-Arrow.named = function(name) {
-    return function() {
-        var arrow = Arrow.apply(this, arguments);
-        arrow.name = name;
-        return arrow;
-    }
-}
-
 Arrow.fromCPS = function(cpsFunction) {
     var arrow = new Arrow;
     arrow.cpsFunction = cpsFunction;
     return arrow;
 }
-
-Arrow.fromCPS.named = function(name) {
-    return function() {
-        var arrow = Arrow.fromCPS.apply(this, arguments);
-        arrow.name = name;
-        return arrow;
-    }
-};
-
-Arrow.prototype.name = 'unnamed';
-
-Arrow.prototype.run = function(x) {
-    var result;
-    this.callCPS(x, function(y) { result = y });
-    return result;
-}
-
-Arrow.prototype.call = Arrow.prototype.run;
 
 Arrow.prototype.callCPS = function(x, k) {
     try {
@@ -52,6 +26,14 @@ Arrow.prototype.callCPS = function(x, k) {
         k(Arrow.Error(e));
     }
 }
+
+Arrow.prototype.run = function(x) {
+    var result;
+    this.callCPS(x, function(y) { result = y });
+    return result;
+}
+
+Arrow.prototype.call = Arrow.prototype.run;
 
 Arrow.prototype.toString = function() {
     if (this.arrows) {
@@ -224,7 +206,7 @@ Arrow.prototype.or = Arrow.prototype['<+>'];
  * Basic arrow generators {{{
  */
 Arrow.Const = function(x) {
-    return Arrow.named('const ' + x)(function() { return x });
+    return Arrow(function() { return x });
 }
 
 Arrow.Identity = Arrow(function(x) { return x });
@@ -240,6 +222,10 @@ Arrow.Stop = Arrow.fromCPS(function(x, k) { });
  * Arrow.Value.In {{{
  */
 Arrow.Value = function() { };
+
+Arrow.Value.prototype.toString = function() {
+    return '[Arrow.Value ' + this.value + ']';
+}
 
 Arrow.Value.In = function(index, value) {
     if (!(this instanceof Arrow.Value.In)) {
@@ -263,6 +249,10 @@ Arrow.Value.In = function(index, value) {
     this.value = value;
 }
 
+Arrow.Value.prototype.toString = function() {
+    return '[Arrow.Value.In(' + this.index + ') ' + this.value + ']';
+}
+
 Arrow.Value.In.constructors = [];
 
 Arrow.Value.In.prototype = new Arrow.Value;
@@ -274,10 +264,6 @@ Arrow.Value.In.prototype = new Arrow.Value;
  * Arrow.Error {{{
  */
 Arrow.Error = Arrow.Value.In(1);
-
-Arrow.Error.prototype.toString = function() {
-    return '[Arrow.Error ' + this.value + ']';
-}
 /*
  * }}}
  */
@@ -287,14 +273,14 @@ Arrow.Error.prototype.toString = function() {
  * TODO: Add Arrow.Async class
  */
 Arrow.Delay = function(msec) {
-    return Arrow.fromCPS.named('delay ' + msec + 'msec')(function(x, k) {
+    return Arrow.fromCPS(function(x, k) {
         this.setTimeoutID = setTimeout(function() { k(x) }, msec);
         this.cancel = function() { clearTimeout(this.setTimeoutID) };
     });
 }
 
 Arrow.Event = function(object, event) {
-    return Arrow.fromCPS.named('event ' + object + ' ' + event)(function(x, k) {
+    return Arrow.fromCPS(function(x, k) {
         var stop = false;
         var listener = function(e) {
             if (stop) return;
@@ -308,7 +294,7 @@ Arrow.Event = function(object, event) {
 
 // TODO: Parameters for method, query
 Arrow.XHR = function(url) {
-    return Arrow.fromCPS.named('xhr ' + url)(function(x, k) {
+    return Arrow.fromCPS(function(x, k) {
         var stop = false;
         try {
             var xhr = Arrow.Compat.newXHR();
@@ -336,7 +322,7 @@ Arrow.JSONP = function(url) {
     if (!('_count' in Arrow.JSONP))
         Arrow.JSONP._count = 0;
 
-    return Arrow.fromCPS.named('JSONP ' + url)(function(x, k) {
+    return Arrow.fromCPS(function(x, k) {
         Arrow.JSONP['callback' + Arrow.JSONP._count] = k;
         var script = document.createElement('script');
         script.src = url + (url.indexOf('?') != -1 ? '&' : '?') + 'callback=Arrow.JSONP.callback' + Arrow.JSONP._count;
