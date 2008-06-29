@@ -35,12 +35,6 @@ Arrow.fromCPS.named = function(name) {
     }
 };
 
-Arrow.Const = function(x) {
-    return Arrow.named('const ' + x)(function() { return x });
-}
-
-Arrow.Identity = Arrow(function(x) { return x });
-
 Arrow.prototype.name = 'unnamed';
 
 Arrow.prototype.run = function(x) {
@@ -73,8 +67,17 @@ Arrow.prototype.toString = function() {
 /*
  * Basic Arrow Operators {{{
  * TODO: Give them proper names
- * TODO: Arrow.commutiveOperator
  */
+Arrow.defineAssociativeOperator = function(op, cpsFunction) {
+    Arrow.prototype[op] = function(g) {
+        var f = this, g = Arrow(g);
+        var arrow = Arrow.fromCPS(cpsFunction);
+        arrow.type = op;
+        arrow.arrows = Array.concat(f.type == op ? f.arrows : f, g.type == op ? g.arrows : g);
+        return arrow;
+    };
+}
+
 // Compose arrows
 //
 // x -> y -> z
@@ -83,25 +86,16 @@ Arrow.prototype.toString = function() {
 // -| f |-| g |->
 //  +---+ +---+
 //
-Arrow.prototype['>>>'] = function(g) {
-    var f = this, g = Arrow(g);
-
-    var arrow = Arrow.fromCPS(function(x, k) {
-        var arrows = this.arrows.slice();
-        (function(x) {
-            if (arrows.length) {
-                arrows.shift().callCPS(x, arguments.callee);
-            } else {
-                k(x);
-            }
-        })(x)
-    });
-
-    arrow.type = '>>>';
-    arrow.arrows = Array.concat(f.type == '>>>' ? f.arrows : f, g.type == '>>>' ? g.arrows : g);
-
-    return arrow;
-}
+Arrow.defineAssociativeOperator('>>>', function(x, k) {
+    var arrows = this.arrows.slice();
+    (function(x) {
+        if (arrows.length) {
+            arrows.shift().callCPS(x, arguments.callee);
+        } else {
+            k(x);
+        }
+    })(x)
+});
 
 Arrow.prototype.next = Arrow.prototype['>>>'];
 
@@ -117,25 +111,16 @@ Arrow.prototype.next = Arrow.prototype['>>>'];
 //  +-| g |->
 //    +---+
 //
-Arrow.prototype['&&&'] = function(g) {
-    var f = this, g = Arrow(g);
-
-    var arrow = Arrow.fromCPS(function(x, k) {
-        var arrows = this.arrows;
-        var results = [];
-        var count = arrows.length;
-        for (var i = 0; i < arrows.length; i++) {
-            with ({ i: i }) {
-                arrows[i].callCPS(x, function(y) { results[i] = y; if (!--count) k(results) });
-            }
+Arrow.defineAssociativeOperator('&&&', function(x, k) {
+    var arrows = this.arrows;
+    var results = [];
+    var count = arrows.length;
+    for (var i = 0; i < arrows.length; i++) {
+        with ({ i: i }) {
+            arrows[i].callCPS(x, function(y) { results[i] = y; if (!--count) k(results) });
         }
-    });
-
-    arrow.type = '&&&';
-    arrow.arrows = Array.concat(f.type == '&&&' ? f.arrows : f, g.type == '&&&' ? g.arrows : g);
-
-    return arrow;
-}
+    }
+});
 
 // Combine arrows
 //
@@ -148,25 +133,16 @@ Arrow.prototype['&&&'] = function(g) {
 // -| g |->
 //  +---+
 //
-Arrow.prototype['***'] = function(g) {
-    var f = this, g = Arrow(g);
-
-    var arrow = Arrow.fromCPS(function(x, k) {
-        var arrows = this.arrows;
-        var results = [];
-        var count = arrows.length;
-        for (var i = 0; i < arrows.length; i++) {
-            with ({ i: i }) {
-                arrows[i].callCPS(x[i], function(y) { results[i] = y; if (!--count) k(results) });
-            }
+Arrow.defineAssociativeOperator('***', function(x, k) {
+    var arrows = this.arrows;
+    var results = [];
+    var count = arrows.length;
+    for (var i = 0; i < arrows.length; i++) {
+        with ({ i: i }) {
+            arrows[i].callCPS(x[i], function(y) { results[i] = y; if (!--count) k(results) });
         }
-    });
-
-    arrow.type = '***';
-    arrow.arrows = Array.concat(f.type == '***' ? f.arrows : f, g.type == '***' ? g.arrows : g);
-
-    return arrow;
-}
+    }
+});
 
 Arrow.prototype.and = Arrow.prototype['***'];
 
@@ -179,22 +155,13 @@ Arrow.prototype.and = Arrow.prototype['***'];
 //   \  +---+  /
 //    `-| g |-'
 //      +---+
-Arrow.prototype['|||'] = function(g) {
-    var f = this, g = Arrow(g);
-
-    var arrow = Arrow.fromCPS(function(x, k) {
-        var arrows = this.arrows;
-        if (!(x instanceof Arrow.Value.In)) {
-            x = Arrow.Value.In(0)(x);
-        }
-        arrows[x.index].callCPS(x.value, function(y) { k(Arrow.Value.In(x.index)(y)) });
-    });
-
-    arrow.type = '|||';
-    arrow.arrows = Array.concat(f.type == '|||' ? f.arrows : f, g.type == '|||' ? g.arrows : g);
-
-    return arrow;
-}
+Arrow.defineAssociativeOperator('|||', function(x, k) {
+    var arrows = this.arrows;
+    if (!(x instanceof Arrow.Value.In)) {
+        x = Arrow.Value.In(0)(x);
+    }
+    arrows[x.index].callCPS(x.value, function(y) { k(Arrow.Value.In(x.index)(y)) });
+});
 
 //
 // Join arrows
@@ -206,22 +173,13 @@ Arrow.prototype['|||'] = function(g) {
 //   \  +---+  /
 //    `-| g |-'
 //      +---+
-Arrow.prototype['+++'] = function(g) {
-    var f = this, g = Arrow(g);
-
-    var arrow = Arrow.fromCPS(function(x, k) {
-        var arrows = this.arrows;
-        if (!(x instanceof Arrow.Value.In)) {
-            x = Arrow.Value.In(0)(x);
-        }
-        arrows[x.index].callCPS(x.value, k);
-    });
-
-    arrow.type = '+++';
-    arrow.arrows = Array.concat(f.type == '+++' ? f.arrows : f, g.type == '+++' ? g.arrows : g);
-
-    return arrow;
-}
+Arrow.defineAssociativeOperator('+++', function(x, k) {
+    var arrows = this.arrows;
+    if (!(x instanceof Arrow.Value.In)) {
+        x = Arrow.Value.In(0)(x);
+    }
+    arrows[x.index].callCPS(x.value, k);
+});
 
 Arrow.prototype.withErrorNext = function(f, g) {
     return this.next((f)['+++'](g));
@@ -236,35 +194,26 @@ Arrow.prototype.withErrorNext = function(f, g) {
 //   \  +---+  /
 //    `-| g |-'
 //      +---+
-Arrow.prototype['<+>'] = function(g) {
-    var f = this, g = Arrow(g);
-
-    var arrow = Arrow.fromCPS(function(x, k) {
-        var called;
-        var arrows = this.arrows;
+Arrow.defineAssociativeOperator('<+>', function(x, k) {
+    var called;
+    var arrows = this.arrows;
+    for (var i = 0; i < arrows.length; i++) {
+        with ({ i: i }) {
+            arrows[i].callCPS(x, function(y) { cancelBut(i); callCont(y) });
+        }
+    }
+    function callCont(y) {
+        if (!called)
+            k(y);
+        called = true;
+    }
+    function cancelBut(index) {
         for (var i = 0; i < arrows.length; i++) {
-            with ({ i: i }) {
-                arrows[i].callCPS(x, function(y) { cancelBut(i); callCont(y) });
-            }
+            if (i == index) continue;
+            arrows[i].cancel && arrows[i].cancel();
         }
-        function callCont(y) {
-            if (!called)
-                k(y);
-            called = true;
-        }
-        function cancelBut(index) {
-            for (var i = 0; i < arrows.length; i++) {
-                if (i == index) continue;
-                arrows[i].cancel && arrows[i].cancel();
-            }
-        }
-    });
-
-    arrow.type = '<+>';
-    arrow.arrows = Array.concat(f.type == '<+>' ? f.arrows : f, g.type == '<+>' ? g.arrows : g);
-
-    return arrow;
-}
+    }
+});
 
 Arrow.prototype.or = Arrow.prototype['<+>'];
 /*
@@ -272,10 +221,15 @@ Arrow.prototype.or = Arrow.prototype['<+>'];
  */
 
 /*
- * Arrow.Stop {{{
+ * Basic arrow generators {{{
  */
-Arrow.Stop = Arrow.fromCPS(function(x, k) {
-});
+Arrow.Const = function(x) {
+    return Arrow.named('const ' + x)(function() { return x });
+}
+
+Arrow.Identity = Arrow(function(x) { return x });
+
+Arrow.Stop = Arrow.fromCPS(function(x, k) { });
 /*
  * }}}
  */
@@ -348,7 +302,7 @@ Arrow.Event = function(object, event) {
             k(e);
         };
         Arrow.Compat.addEventListener(object, event, listener, true);
-        this.cancel = function() { this.stop = true };
+        this.cancel = function() { stop = true };
     });
 }
 
