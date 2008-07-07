@@ -212,11 +212,15 @@ Arrow.Const = function(x) {
 Arrow.Identity = Arrow(function(x) { return x });
 
 Arrow.Stop = Arrow.fromCPS(function(x, k) { });
+
+Arrow.Loop = function(a) {
+    return Arrow.fromCPS(function(x) {
+        a.callCPS(x, arguments.callee);
+    });
+}
 /*
  * }}}
  */
-
-// TODO: Arrow.Loop
 
 /*
  * Arrow.Value.In {{{
