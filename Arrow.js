@@ -20,6 +20,10 @@ Arrow.fromCPS = function(cpsFunction) {
 }
 
 Arrow.prototype.callCPS = function(x, k) {
+    if (!('cpsFunction' in this)) {
+        // this is a Function
+        this.cpsFunction = function(x, k) { return k(f(x)) };
+    }
     try {
         this.cpsFunction(x, k);
     } catch (e) {
@@ -358,6 +362,24 @@ Arrow.Compat.addEventListener = function(object, event, callback, capture) {
 
 Arrow.Compat.newXHR = function() {
     return new XMLHttpRequest;
+}
+/*
+ * }}}
+ */
+
+/*
+ * Exporting {{{
+ */
+Arrow.export = function(object) {
+    for (var p in Arrow) if (p != 'prototype') {
+        object[p] = Arrow[p];
+    }
+}
+
+Arrow.exportToFunction = function() {
+    for (var p in Arrow.prototype) {
+        Function.prototype[p] = Arrow.prototype[p];
+    }
 }
 /*
  * }}}
